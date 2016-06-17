@@ -27,8 +27,7 @@ class gps
     const ESTADO_NO_ENCONTRADO = 5;
 
 
-    public static function post($peticion)
-    {
+    public static function post($peticion){
         if ($peticion[0] == 'registro') {
             return self::registrar();
         } else if ($peticion[0] == 'login') {
@@ -50,8 +49,7 @@ class gps
     /**
      * Crea un nuevo empresa en la base de datos
      */
-    private function registrar()
-    {
+    private function registrar(){
         $cuerpo = file_get_contents('php://input');
         $gps = json_decode($cuerpo);
 
@@ -99,8 +97,7 @@ class gps
         }
     }
 
-    public static function delete($peticion)
-    {
+    public static function delete($peticion){
         //$idUsuario = usuarios::autorizar();
 
         if (!empty($peticion[0])) {
@@ -125,8 +122,7 @@ class gps
      * @param mixed $datosUsuario columnas del registro
      * @return int codigo para determinar si la insercion fue exitosa
      */
-    private function crear($datosGPS)
-    {
+    private function crear($datosGPS){
         $imei = $datosGPS->imei;
         $numero = $datosGPS->numero;
         $descripcion = $datosGPS->descripcion;
@@ -165,8 +161,7 @@ class gps
     }
 
 
-    private function listarUnoId()
-    {
+    private function listarUnoId(){
         $body = file_get_contents('php://input');
         $gps = json_decode($body);
 
@@ -194,8 +189,7 @@ class gps
     }
 
 
-    private function listarVarios()
-    {
+    private function listarVarios(){
         $usuarioBD = self::obtenerGps(NULL, NULL, NULL);
 
         if ($usuarioBD != NULL) {
@@ -222,34 +216,37 @@ class gps
         }
     }
 
-    private function listarGpsDeEmpresa()
-    {
+    private function listarGpsDeEmpresa(){
         $cuerpo = file_get_contents('php://input');
         $gps = json_decode($cuerpo);
 
-        $ID_EMPRESA_DE_GPS = $gps->empresa_id;
-        //
-        $gpsBD = self::obtenerGps(NULL, NULL , $ID_EMPRESA_DE_GPS);
-        if ($gpsBD != NULL) {
-            http_response_code(200);
-            $arreglo = array();
-            while ($row = $gpsBD->fetch()) {
-                array_push($arreglo, array(
-                    "imei" => $row[0],
-                    "numero" => $row[1],
-                    "descripcion" => $row[2],
-                    "empresa_id" => $row[3]
-                ));
+        if(!empty($gps)) {
+            $ID_EMPRESA_DE_GPS = $gps->empresa_id;
+            //
+            $gpsBD = self::obtenerGps(NULL, NULL, $ID_EMPRESA_DE_GPS);
+            if ($gpsBD != NULL) {
+                http_response_code(200);
+                $arreglo = array();
+                while ($row = $gpsBD->fetch()) {
+                    array_push($arreglo, array(
+                        "imei" => $row[0],
+                        "numero" => $row[1],
+                        "descripcion" => $row[2],
+                        "empresa_id" => $row[3]
+                    ));
+                }
+                return ["estado" => 1, "gps" => $arreglo];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "Ha ocurrido un error probablemente no se encontro el dato");
             }
-            return ["estado" => 1, "gps" => $arreglo];
-        } else {
+        }else{
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
-                "Ha ocurrido un error probablemente no se encontro el dato");
+                "Se desconoce la empresa del gps");
         }
     }
 
-    private function listarLibres()
-    {
+    private function listarLibres(){
         $gpsBD = self::obtenerGps(NULL, TRUE, NULL);
         if ($gpsBD != NULL) {
             http_response_code(200);
@@ -272,8 +269,7 @@ class gps
 
 //private function actualizar($idEmpresa, $empresa, $idContacto)
     private
-    function actualizar($gps, $IMEI)
-    {
+    function actualizar($gps, $IMEI){
         try {
             $consulta = "UPDATE " . self::NOMBRE_TABLA .
                 " SET " . self::NUMERO . "=?," .
@@ -306,8 +302,7 @@ class gps
 
 
     private
-    function eliminar($IMEI)
-    {
+    function eliminar($IMEI){
         try {
             // Sentencia DELETE
             $comando = "DELETE FROM " . self::NOMBRE_TABLA .
@@ -328,8 +323,7 @@ class gps
     }
 
     private
-    function obtenerGps($id = NULL, $enlaces = NULL, $id_empresa = NULL)
-    {
+    function obtenerGps($id = NULL, $enlaces = NULL, $id_empresa = NULL){
         if ($enlaces) {
             $vacio = " ";
             $consulta = "SELECT " .
@@ -394,11 +388,6 @@ class gps
                 return $sentencia;
             else
                 return null;
-            if ($sentencia->execute())
-                return $sentencia;
-            else
-                return null;
         }
     }
 }
-

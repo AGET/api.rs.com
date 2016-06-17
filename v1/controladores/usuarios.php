@@ -8,7 +8,7 @@ class usuarios
     const ID_USUARIO = "usuario_id";
     const NOMBRE = "nombre";
     const APPATERNO = "ap_paterno";
-    const APMATERNO= "ap_materno";
+    const APMATERNO = "ap_materno";
     const TELEFONO = "telefono";
     const CORREO = "correo";
     const USUARIO = "usuario";
@@ -43,8 +43,9 @@ class usuarios
             return self::listarUnoId();
         } else if ($peticion[0] == 'listarVarios') {
             return self::listarVarios();
-        }
-        else {
+        } else if ($peticion[0] == 'listarUsuariosDeEmpresa') {
+            return self::listarUsuariosDeEmpresa();
+        } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
     }
@@ -86,7 +87,7 @@ class usuarios
             $usuario = json_decode($body);
 
             //if (self::actualizar($idEmpresa, $empresa, $peticion[0]) > 0) {
-            if (self::actualizar( $usuario, $peticion[0]) > 0) {
+            if (self::actualizar($usuario, $peticion[0]) > 0) {
                 http_response_code(200);
                 return [
                     "estado" => self::CODIGO_EXITO,
@@ -131,7 +132,7 @@ class usuarios
     {
         $nombre = $datosUsuario->nombre;
         $ap_paterno = $datosUsuario->ap_paterno;
-        $ap_materno= $datosUsuario->ap_materno;
+        $ap_materno = $datosUsuario->ap_materno;
         $telefono = $datosUsuario->telefono;
         $correo = $datosUsuario->correo;
         $usuario = $datosUsuario->usuario;
@@ -160,16 +161,15 @@ class usuarios
                 " VALUES(?,?,?,?,?,?,?,?,?)";
 
 
-
             $sentencia = $pdo->prepare($comando);
 
-            $sentencia->bindParam(1, $nombre );
-            $sentencia->bindParam(2, $ap_paterno );
+            $sentencia->bindParam(1, $nombre);
+            $sentencia->bindParam(2, $ap_paterno);
             $sentencia->bindParam(3, $ap_materno);
-            $sentencia->bindParam(4, $telefono );
-            $sentencia->bindParam(5, $correo );
-            $sentencia->bindParam(6, $usuario );
-            $sentencia->bindParam(7, $contrasenaEncriptada );
+            $sentencia->bindParam(4, $telefono);
+            $sentencia->bindParam(5, $correo);
+            $sentencia->bindParam(6, $usuario);
+            $sentencia->bindParam(7, $contrasenaEncriptada);
             $sentencia->bindParam(8, $empresa_id);
             $sentencia->bindParam(9, $clave_api);
 
@@ -192,7 +192,7 @@ class usuarios
         $body = file_get_contents('php://input');
         $usuario = json_decode($body);
 
-        if(isset($empresa_cliente)){
+        if (isset($empresa_cliente)) {
             $id = $usuario->usuario_id;
             //echo " nombre: ".$usuario->nombre;
             //echo " nombre_id: ".$id;
@@ -217,7 +217,7 @@ class usuarios
                 throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                     "Ha ocurrido un error probablemente no se encontro el dato");
             }
-        }else{
+        } else {
             throw new ExcepcionApi(self::ESTADO_NO_ENCONTRADO,
                 "Especifique el indice ");
         }
@@ -258,18 +258,18 @@ class usuarios
 //            $respuesta["contrase_na"] = $usuarioBD["contrase_na"];
 //            $respuesta["empresa_id"] = $usuarioBD["empresa_id"];
 
-            $arreglo =array();
-            while($row = $usuarioBD->fetch()) {
+            $arreglo = array();
+            while ($row = $usuarioBD->fetch()) {
                 array_push($arreglo, array(
-                    "usuario_id"    =>  $row[0],
-                    "nombre"        =>  $row[1],
-                    "ap_paterno"    =>  $row[2],
-                    "ap_materno"    =>  $row[3],
-                    "telefono"      =>  $row[4],
-                    "correo"        =>  $row[5],
-                    "usuario"       =>  $row[6],
-                    "contrase_na"   =>  $row[7],
-                    "empresa_id"    =>  $row[8]
+                    "usuario_id" => $row[0],
+                    "nombre" => $row[1],
+                    "ap_paterno" => $row[2],
+                    "ap_materno" => $row[3],
+                    "telefono" => $row[4],
+                    "correo" => $row[5],
+                    "usuario" => $row[6],
+                    "contrase_na" => $row[7],
+                    "empresa_id" => $row[8]
                 ));
             }
 //            foreach ($arreglo as $keys) {
@@ -297,17 +297,52 @@ class usuarios
         */
     }
 
+    private function listarUsuariosDeEmpresa(){
+        $cuerpo = file_get_contents('php://input');
+        $usuario = json_decode($cuerpo);
+
+        if(!empty($usuario)) {
+            $ID_EMPRESA_DE_USUARIOS = $usuario->empresa_id;
+            echo "nUESTRO ID ES: " . $ID_EMPRESA_DE_USUARIOS . "--";
+            $usuarioBD = self::obtenerUsuario(NULL, $ID_EMPRESA_DE_USUARIOS);
+            if ($usuarioBD != NULL) {
+                http_response_code(200);
+                $arreglo = array();
+                while ($row = $usuarioBD->fetch()) {
+                    array_push($arreglo, array(
+                        "usuario_id" => $row[0],
+                        "nombre" => $row[1],
+                        "ap_paterno" => $row[2],
+                        "ap_materno" => $row[3],
+                        "telefono" => $row[4],
+                        "correo" => $row[5],
+                        "usuario" => $row[6],
+                        "contrase_na" => $row[7],
+                        "empresa_id" => $row[8]
+                    ));
+                }
+                return ["estado" => 1, "usuario" => $arreglo];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "Ha ocurrido un error probablemente no se encontro el dato");
+            }
+        }else{
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Se desconoce la empresa");
+        }
+    }
+
 
     //private function actualizar($idEmpresa, $empresa, $idContacto)
-    private function actualizar( $usuario, $idUsuario )
+    private function actualizar($usuario, $idUsuario)
     {
         try {
-              $consulta = "UPDATE " . self::NOMBRE_TABLA .
+            $consulta = "UPDATE " . self::NOMBRE_TABLA .
                 " SET " . self::NOMBRE . "=?," .
-                  self::APPATERNO . "=?," .
-                  self::APMATERNO . "=?," .
-                  self::TELEFONO . "=?," .
-                  self::CORREO . "=?," .
+                self::APPATERNO . "=?," .
+                self::APMATERNO . "=?," .
+                self::TELEFONO . "=?," .
+                self::CORREO . "=?," .
                 self::USUARIO . "=?," .
                 self::CONTRASE_NA . "=?" .
                 " WHERE " . self::ID_USUARIO . "=?";
@@ -316,14 +351,14 @@ class usuarios
             // Preparar la sentencia
             $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
-            $sentencia->bindParam(1, $nombre );
-            $sentencia->bindParam(2, $ap_paterno );
+            $sentencia->bindParam(1, $nombre);
+            $sentencia->bindParam(2, $ap_paterno);
             $sentencia->bindParam(3, $ap_materno);
-            $sentencia->bindParam(4, $telefono );
-            $sentencia->bindParam(5, $correo );
-            $sentencia->bindParam(6, $usuariouser );
-            $sentencia->bindParam(7, $contrasenaEncriptada );
-            $sentencia->bindParam(8, $idUsuario );
+            $sentencia->bindParam(4, $telefono);
+            $sentencia->bindParam(5, $correo);
+            $sentencia->bindParam(6, $usuariouser);
+            $sentencia->bindParam(7, $contrasenaEncriptada);
+            $sentencia->bindParam(8, $idUsuario);
 
             $contrase_na = $usuario->contrase_na;
             $contrasenaEncriptada = self::encriptarContrasena($contrase_na);
@@ -331,7 +366,7 @@ class usuarios
 
             $nombre = $usuario->nombre;
             $ap_paterno = $usuario->ap_paterno;
-            $ap_materno= $usuario->ap_materno;
+            $ap_materno = $usuario->ap_materno;
             $telefono = $usuario->telefono;
             $correo = $usuario->correo;
             $usuariouser = $usuario->usuario;
@@ -479,26 +514,49 @@ class usuarios
     }
 
 
-    private function obtenerUsuario($id = NULL)
+    private function obtenerUsuario($id = NULL, $id_empresa = NULL)
     {
-        if ($id == NULL) {
-            $consulta = "SELECT " .
-                self::ID_USUARIO . "," .
-                self::NOMBRE . "," .
-                self::APPATERNO . "," .
-                self::APMATERNO . ", " .
-                self::TELEFONO . ", " .
-                self::CORREO . ", " .
-                self::USUARIO . ", " .
-                self::CONTRASE_NA . ", " .
-                self::ID_EMPRESA .
-                " FROM " . self::NOMBRE_TABLA;
-            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-            if ($sentencia->execute())
-                //return $sentencia->fetch(PDO::FETCH_ASSOC);
-                return $sentencia;
-            else
-                return null;
+        if ($id_empresa == NULL) {
+            if ($id == NULL) {
+                $consulta = "SELECT " .
+                    self::ID_USUARIO . "," .
+                    self::NOMBRE . "," .
+                    self::APPATERNO . "," .
+                    self::APMATERNO . ", " .
+                    self::TELEFONO . ", " .
+                    self::CORREO . ", " .
+                    self::USUARIO . ", " .
+                    self::CONTRASE_NA . ", " .
+                    self::ID_EMPRESA .
+                    " FROM " . self::NOMBRE_TABLA;
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                if ($sentencia->execute())
+                    //return $sentencia->fetch(PDO::FETCH_ASSOC);
+                    return $sentencia;
+                else
+                    return null;
+            } else {
+                $consulta = "SELECT " .
+                    self::ID_USUARIO . "," .
+                    self::NOMBRE . "," .
+                    self::APPATERNO . "," .
+                    self::APMATERNO . ", " .
+                    self::TELEFONO . ", " .
+                    self::CORREO . ", " .
+                    self::USUARIO . ", " .
+                    self::CONTRASE_NA . ", " .
+                    self::ID_EMPRESA .
+                    " FROM " . self::NOMBRE_TABLA .
+                    " WHERE " . self::ID_USUARIO . "=?";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+
+                $sentencia->bindParam(1, $id);
+
+                if ($sentencia->execute())
+                    return $sentencia->fetch(PDO::FETCH_ASSOC);
+                else
+                    return null;
+            }
         } else {
             $consulta = "SELECT " .
                 self::ID_USUARIO . "," .
@@ -511,18 +569,20 @@ class usuarios
                 self::CONTRASE_NA . ", " .
                 self::ID_EMPRESA .
                 " FROM " . self::NOMBRE_TABLA .
-                " WHERE " . self::ID_USUARIO . "=?";
+                " WHERE " . self::ID_EMPRESA . "=?";
+            /*SELECT g.descripcion, ec.nombre
+                FROM dbrs.gps g
+	        INNER JOIN dbrs.empresa_cliente ec ON ( g.empresa_id = ec.empresa_id  )
+            WHERE ec.empresa_id = X*/
             $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-
-            $sentencia->bindParam(1, $id);
+echo "Consulta: ".$consulta;
+            $sentencia->bindParam(1, $id_empresa);
 
             if ($sentencia->execute())
-                return $sentencia->fetch(PDO::FETCH_ASSOC);
+                return $sentencia;
             else
                 return null;
         }
-
-
     }
 
 
