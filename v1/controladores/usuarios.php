@@ -33,8 +33,7 @@ class usuarios
     const ESTADO_NO_ENCONTRADO = 5;
 
 
-    public static function post($peticion)
-    {
+    public static function post($peticion){
         if ($peticion[0] == 'registro') {
             return self::registrar();
         } else if ($peticion[0] == 'login') {
@@ -53,8 +52,7 @@ class usuarios
     /**
      * Crea un nuevo empresa en la base de datos
      */
-    private function registrar()
-    {
+    private function registrar(){
         $cuerpo = file_get_contents('php://input');
         $usuario = json_decode($cuerpo);
 
@@ -77,8 +75,7 @@ class usuarios
         }
     }
 
-    public static function put($peticion)
-    {
+    public static function put($peticion){
         //$idEmpresa = empresa_cliente::autorizar();
 
         //$peticion[0] : es lo indicado e la direccion :http://localhost/api.rs.com/v1/usuarios/2 = 2
@@ -102,8 +99,7 @@ class usuarios
         }
     }
 
-    public static function delete($peticion)
-    {
+    public static function delete($peticion){
         //$idUsuario = usuarios::autorizar();
 
         if (!empty($peticion[0])) {
@@ -128,8 +124,7 @@ class usuarios
      * @param mixed $datosUsuario columnas del registro
      * @return int codigo para determinar si la insercion fue exitosa
      */
-    private function crear($datosUsuario)
-    {
+    private function crear($datosUsuario){
         $nombre = $datosUsuario->nombre;
         $ap_paterno = $datosUsuario->ap_paterno;
         $ap_materno = $datosUsuario->ap_materno;
@@ -187,8 +182,7 @@ class usuarios
     }
 
 
-    private function listarUnoId()
-    {
+    private function listarUnoId(){
         $body = file_get_contents('php://input');
         $usuario = json_decode($body);
 
@@ -238,8 +232,7 @@ class usuarios
         */
     }
 
-    private function listarVarios()
-    {
+    private function listarVarios(){
 //        $body = file_get_contents('php://input');
 //        $usuario = json_decode($body);
 
@@ -303,7 +296,6 @@ class usuarios
 
         if(!empty($usuario)) {
             $ID_EMPRESA_DE_USUARIOS = $usuario->empresa_id;
-            echo "nUESTRO ID ES: " . $ID_EMPRESA_DE_USUARIOS . "--";
             $usuarioBD = self::obtenerUsuario(NULL, $ID_EMPRESA_DE_USUARIOS);
             if ($usuarioBD != NULL) {
                 http_response_code(200);
@@ -334,8 +326,7 @@ class usuarios
 
 
     //private function actualizar($idEmpresa, $empresa, $idContacto)
-    private function actualizar($usuario, $idUsuario)
-    {
+    private function actualizar($usuario, $idUsuario){
         try {
             $consulta = "UPDATE " . self::NOMBRE_TABLA .
                 " SET " . self::NOMBRE . "=?," .
@@ -383,8 +374,7 @@ class usuarios
     }
 
 
-    private function eliminar($idUsuario)
-    {
+    private function eliminar($idUsuario){
         try {
             // Sentencia DELETE
             $comando = "DELETE FROM " . self::NOMBRE_TABLA .
@@ -410,15 +400,13 @@ class usuarios
      * @param $contrasenaPlana
      * @return bool|null|string
      */
-    private function encriptarContrasena($contrasenaPlana)
-    {
+    private function encriptarContrasena($contrasenaPlana){
         if ($contrasenaPlana)
             return password_hash($contrasenaPlana, PASSWORD_DEFAULT);
         else return null;
     }
 
-    private function generarClaveApi()
-    {
+    private function generarClaveApi(){
         return md5(microtime() . rand());
     }
 
@@ -493,8 +481,7 @@ class usuarios
     */
 
 
-    private function obtenerEmpresaPorCorreo($correo)
-    {
+    private function obtenerEmpresaPorCorreo($correo){
         $comando = "SELECT " .
             self::NOMBRE . "," .
             self::CONTRASENA . "," .
@@ -514,8 +501,7 @@ class usuarios
     }
 
 
-    private function obtenerUsuario($id = NULL, $id_empresa = NULL)
-    {
+    private function obtenerUsuario($id = NULL, $id_empresa = NULL){
         if ($id_empresa == NULL) {
             if ($id == NULL) {
                 $consulta = "SELECT " .
@@ -575,7 +561,6 @@ class usuarios
 	        INNER JOIN dbrs.empresa_cliente ec ON ( g.empresa_id = ec.empresa_id  )
             WHERE ec.empresa_id = X*/
             $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-echo "Consulta: ".$consulta;
             $sentencia->bindParam(1, $id_empresa);
 
             if ($sentencia->execute())

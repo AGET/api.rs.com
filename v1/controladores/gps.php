@@ -10,6 +10,12 @@ class gps
     const NUMERO = "numero";
     const ID_EMPRESA = "empresa_id";
 
+    const INDIVIDUAL = "uno";
+    const TODOS = "todos";
+    const ENLAZADOS = "enlace";
+    const LIBRES = "libres";
+    const ENLACES_DISPONIBLES = "enlaces";
+
     const ESTADO_CREACION_EXITOSA = 1;
     const ESTADO_CREACION_FALLIDA = 2;
     const ESTADO_ERROR_BD = 3;
@@ -27,7 +33,8 @@ class gps
     const ESTADO_NO_ENCONTRADO = 5;
 
 
-    public static function post($peticion){
+    public static function post($peticion)
+    {
         if ($peticion[0] == 'registro') {
             return self::registrar();
         } else if ($peticion[0] == 'login') {
@@ -40,6 +47,8 @@ class gps
             return self::listarLibres();
         } else if ($peticion[0] == 'listarGpsDeEmpresa') {
             return self::listarGpsDeEmpresa();
+        } else if ($peticion[0] == 'listarGpsDeEmpresaDisponibles') {
+            return self::listarGpsDeEmpresaDisponibles();
         } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
@@ -49,7 +58,8 @@ class gps
     /**
      * Crea un nuevo empresa en la base de datos
      */
-    private function registrar(){
+    private function registrar()
+    {
         $cuerpo = file_get_contents('php://input');
         $gps = json_decode($cuerpo);
 
@@ -97,7 +107,8 @@ class gps
         }
     }
 
-    public static function delete($peticion){
+    public static function delete($peticion)
+    {
         //$idUsuario = usuarios::autorizar();
 
         if (!empty($peticion[0])) {
@@ -122,7 +133,8 @@ class gps
      * @param mixed $datosUsuario columnas del registro
      * @return int codigo para determinar si la insercion fue exitosa
      */
-    private function crear($datosGPS){
+    private function crear($datosGPS)
+    {
         $imei = $datosGPS->imei;
         $numero = $datosGPS->numero;
         $descripcion = $datosGPS->descripcion;
@@ -161,14 +173,15 @@ class gps
     }
 
 
-    private function listarUnoId(){
+    private function listarUnoId()
+    {
         $body = file_get_contents('php://input');
         $gps = json_decode($body);
 
         if (isset($gps)) {
             $imei = $gps->imei;
 
-            $gpsBD = self::obtenerGps($imei, NULL, NULL );
+            $gpsBD = self::obtenerGps(self::INDIVIDUAL, $imei);
 
             if ($gpsBD != NULL) {
                 http_response_code(200);
@@ -187,10 +200,10 @@ class gps
                 "Especifique el indice ");
         }
     }
-
-
-    private function listarVarios(){
-        $usuarioBD = self::obtenerGps(NULL, NULL, NULL);
+    
+    private function listarVarios()
+    {
+        $usuarioBD = self::obtenerGps(self::TODOS);
 
         if ($usuarioBD != NULL) {
             http_response_code(200);
@@ -216,14 +229,15 @@ class gps
         }
     }
 
-    private function listarGpsDeEmpresa(){
+    private function listarGpsDeEmpresa()
+    {
         $cuerpo = file_get_contents('php://input');
         $gps = json_decode($cuerpo);
 
-        if(!empty($gps)) {
+        if (!empty($gps)) {
             $ID_EMPRESA_DE_GPS = $gps->empresa_id;
-            //
-            $gpsBD = self::obtenerGps(NULL, NULL, $ID_EMPRESA_DE_GPS);
+
+            $gpsBD = self::obtenerGps(self::ENLAZADOS,$ID_EMPRESA_DE_GPS);
             if ($gpsBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
@@ -240,14 +254,50 @@ class gps
                 throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                     "Ha ocurrido un error probablemente no se encontro el dato");
             }
-        }else{
+        } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                 "Se desconoce la empresa del gps");
         }
     }
 
-    private function listarLibres(){
-        $gpsBD = self::obtenerGps(NULL, TRUE, NULL);
+    private function listarGpsDeEmpresaDisponibles(){
+        /*
+         * SELECT g.imei, g.numero, g.descripcion, e.enlace_id, e.usuario_id,count(g.imei) as cantidadEnlaces FROM dbrs.gps g left JOIN dbrs.enlace e ON ( g.imei = e.gps_imei  ) WHERE g.empresa_id = 1 GROUP BY g.imei having cantidadEnlaces < 6
+         * */
+        $cuerpo = file_get_contents('php://input');
+        $gps = json_decode($cuerpo);
+
+        if (!empty($gps)) {
+            $ID_EMPRESA_DE_GPS = $gps->empresa_id;
+
+            $gpsBD = self::obtenerGps(self::ENLACES_DISPONIBLES, $ID_EMPRESA_DE_GPS);
+            if ($gpsBD != NULL) {
+                http_response_code(200);
+                $arreglo = array();
+                while ($row = $gpsBD->fetch()) {
+                    array_push($arreglo, array(
+                        "imei" => $row[0],
+                        "numero" => $row[1],
+                        "descripcion" => $row[2],
+                        "enlace_id" => $row[3],
+                        "usuario_id" => $row[4],
+                        "cantidadEnlaces" => $row[5]
+                    ));
+                }
+                return ["estado" => 1, "gps" => $arreglo];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "Ha ocurrido un error probablemente no se encontro el dato");
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Se desconoce la empresa del gps");
+        }
+    }
+
+    private function listarLibres()
+    {
+        $gpsBD = self::obtenerGps(self::LIBRES);
         if ($gpsBD != NULL) {
             http_response_code(200);
             $arreglo = array();
@@ -266,10 +316,9 @@ class gps
         }
     }
 
-
-//private function actualizar($idEmpresa, $empresa, $idContacto)
     private
-    function actualizar($gps, $IMEI){
+    function actualizar($gps, $IMEI)
+    {
         try {
             $consulta = "UPDATE " . self::NOMBRE_TABLA .
                 " SET " . self::NUMERO . "=?," .
@@ -300,9 +349,9 @@ class gps
         }
     }
 
-
     private
-    function eliminar($IMEI){
+    function eliminar($IMEI)
+    {
         try {
             // Sentencia DELETE
             $comando = "DELETE FROM " . self::NOMBRE_TABLA .
@@ -322,72 +371,93 @@ class gps
         }
     }
 
-    private
-    function obtenerGps($id = NULL, $enlaces = NULL, $id_empresa = NULL){
-        if ($enlaces) {
-            $vacio = " ";
-            $consulta = "SELECT " .
-                self::IMEI . ", " .
-                self::NUMERO . ", " .
-                self::DESCRIPCION . ", " .
-                self::ID_EMPRESA .
-                " FROM " . self::NOMBRE_TABLA .
-                //" WHERE " . self::ID_ENLACE . "=?";
-                " WHERE " . self::ID_EMPRESA . " is null";
-            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-            //$sentencia->bindParam(1, $vacio);
-            if ($sentencia->execute()) {
-                return $sentencia;
-            } else
-                return null;
-        } else if ($id == NULL && $id_empresa == NULL) {
-            $consulta = "SELECT " .
-                self::IMEI . "," .
-                self::NUMERO . "," .
-                self::DESCRIPCION . "," .
-                self::ID_EMPRESA .
-                " FROM " . self::NOMBRE_TABLA;
-            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-            if ($sentencia->execute())
-                return $sentencia;
-            else
-                return null;
-        } else if($id_empresa == NULL) {
-            $consulta = "SELECT " .
-                self::IMEI . "," .
-                self::NUMERO . "," .
-                self::DESCRIPCION . "," .
-                self::ID_EMPRESA .
-                " FROM " . self::NOMBRE_TABLA .
-                " WHERE " . self::IMEI . "=?";
-            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+    private function obtenerGps($tipoPeticion, $dato = NULL)
+    {
+        switch ($tipoPeticion) {
+            case self::INDIVIDUAL:
+                $consulta = "SELECT " .
+                    self::IMEI . "," .
+                    self::NUMERO . "," .
+                    self::DESCRIPCION . "," .
+                    self::ID_EMPRESA .
+                    " FROM " . self::NOMBRE_TABLA .
+                    " WHERE " . self::IMEI . "=?";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
-            $sentencia->bindParam(1, $id);
+                $sentencia->bindParam(1, $dato);
 
-            if ($sentencia->execute())
-                return $sentencia->fetch(PDO::FETCH_ASSOC);
-            else
-                return null;
-        }else {
-            $consulta = "SELECT " .
-                self::IMEI . "," .
-                self::NUMERO . "," .
-                self::DESCRIPCION . "," .
-                self::ID_EMPRESA .
-                " FROM " . self::NOMBRE_TABLA.
-                " WHERE " . self::ID_EMPRESA . "=?";
-            /*SELECT g.descripcion, ec.nombre
-                FROM dbrs.gps g
-	        INNER JOIN dbrs.empresa_cliente ec ON ( g.empresa_id = ec.empresa_id  )
-            WHERE ec.empresa_id = X*/
-            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                if ($sentencia->execute())
+                    return $sentencia->fetch(PDO::FETCH_ASSOC);
+                else
+                    return null;
+                break;
+            case self::LIBRES:
+                $consulta = "SELECT " .
+                    self::IMEI . ", " .
+                    self::NUMERO . ", " .
+                    self::DESCRIPCION . ", " .
+                    self::ID_EMPRESA .
+                    " FROM " . self::NOMBRE_TABLA .
+                    " WHERE " . self::ID_EMPRESA . " is null";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                if ($sentencia->execute()) {
+                    return $sentencia;
+                } else
+                    return null;
+                break;
+            case self::TODOS:
+                $consulta = "SELECT " .
+                    self::IMEI . "," .
+                    self::NUMERO . "," .
+                    self::DESCRIPCION . "," .
+                    self::ID_EMPRESA .
+                    " FROM " . self::NOMBRE_TABLA;
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
+            case self::ENLAZADOS:
+                $consulta = "SELECT " .
+                    self::IMEI . "," .
+                    self::NUMERO . "," .
+                    self::DESCRIPCION . "," .
+                    self::ID_EMPRESA .
+                    " FROM " . self::NOMBRE_TABLA .
+                    " WHERE " . self::ID_EMPRESA . "=?";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
-            $sentencia->bindParam(1, $id_empresa);
+                $sentencia->bindParam(1, $dato);
 
-            if ($sentencia->execute())
-                return $sentencia;
-            else
-                return null;
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
+            case self::ENLACES_DISPONIBLES:
+                $consulta =
+                    "SELECT " .
+                        "g.".self::IMEI . "," .
+                        "g.".self::NUMERO . "," .
+                        "g.".self::DESCRIPCION . "," .
+                        "e.enlace_id,".
+                        "e.usuario_id,".
+                        "count(g.imei) as cantidadEnlaces".
+                    " FROM " . self::NOMBRE_TABLA ." g".
+                    " LEFT JOIN enlace e ON (g.imei = e.gps_imei)".
+                    " WHERE g." . self::ID_EMPRESA . "=?".
+                    " GROUP BY g.imei".
+                    " HAVING cantidadEnlaces < 6 ";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+
+                $sentencia->bindParam(1, $dato);
+
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
         }
     }
 }
