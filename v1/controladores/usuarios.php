@@ -25,6 +25,10 @@ class usuarios
     const ESTADO_FALLA_DESCONOCIDA = 7;
     const ESTADO_PARAMETROS_INCORRECTOS = 8;
 
+    const INDIVIDUAL = "uno";
+    const MULTIPLES = "varios";
+    const USER_EN_EMPRESA = "de_empresa";
+    const GPS_DE_USER = "gps_de_usuarios";
 
     const CODIGO_EXITO = 1;
     const ESTADO_EXITO = 1;
@@ -33,7 +37,8 @@ class usuarios
     const ESTADO_NO_ENCONTRADO = 5;
 
 
-    public static function post($peticion){
+    public static function post($peticion)
+    {
         if ($peticion[0] == 'registro') {
             return self::registrar();
         } else if ($peticion[0] == 'login') {
@@ -44,6 +49,8 @@ class usuarios
             return self::listarVarios();
         } else if ($peticion[0] == 'listarUsuariosDeEmpresa') {
             return self::listarUsuariosDeEmpresa();
+        }  else if ($peticion[0] == 'listarGpsDeUsuario') {
+            return self::listarGpsDeUsuario();
         } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
@@ -52,7 +59,8 @@ class usuarios
     /**
      * Crea un nuevo empresa en la base de datos
      */
-    private function registrar(){
+    private function registrar()
+    {
         $cuerpo = file_get_contents('php://input');
         $usuario = json_decode($cuerpo);
 
@@ -75,7 +83,8 @@ class usuarios
         }
     }
 
-    public static function put($peticion){
+    public static function put($peticion)
+    {
         //$idEmpresa = empresa_cliente::autorizar();
 
         //$peticion[0] : es lo indicado e la direccion :http://localhost/api.rs.com/v1/usuarios/2 = 2
@@ -99,7 +108,8 @@ class usuarios
         }
     }
 
-    public static function delete($peticion){
+    public static function delete($peticion)
+    {
         //$idUsuario = usuarios::autorizar();
 
         if (!empty($peticion[0])) {
@@ -124,7 +134,8 @@ class usuarios
      * @param mixed $datosUsuario columnas del registro
      * @return int codigo para determinar si la insercion fue exitosa
      */
-    private function crear($datosUsuario){
+    private function crear($datosUsuario)
+    {
         $nombre = $datosUsuario->nombre;
         $ap_paterno = $datosUsuario->ap_paterno;
         $ap_materno = $datosUsuario->ap_materno;
@@ -182,17 +193,18 @@ class usuarios
     }
 
 
-    private function listarUnoId(){
+    private function listarUnoId()
+    {
         $body = file_get_contents('php://input');
         $usuario = json_decode($body);
 
-        if (isset($empresa_cliente)) {
+        if (isset($usuario)) {
             $id = $usuario->usuario_id;
             //echo " nombre: ".$usuario->nombre;
             //echo " nombre_id: ".$id;
 
             // if (self::autenticar($correo, $contrasena)) {
-            $usuarioBD = self::obtenerUsuario($id);
+            $usuarioBD = self::obtenerUsuario(self::INDIVIDUAL, $id);
 
             if ($usuarioBD != NULL) {
                 http_response_code(200);
@@ -232,24 +244,16 @@ class usuarios
         */
     }
 
-    private function listarVarios(){
+    private function listarVarios()
+    {
 //        $body = file_get_contents('php://input');
 //        $usuario = json_decode($body);
 
         // if (self::autenticar($correo, $contrasena)) {
-        $usuarioBD = self::obtenerUsuario(NULL);
+        $usuarioBD = self::obtenerUsuario(self::MULTIPLES, NULL);
 
         if ($usuarioBD != NULL) {
             http_response_code(200);
-//            $respuesta["usuario_id"] = $usuarioBD["usuario_id"];
-//            $respuesta["nombre"] = $usuarioBD["nombre"];
-//            $respuesta["ap_paterno"] = $usuarioBD["ap_paterno"];
-//            $respuesta["ap_materno"] = $usuarioBD["ap_materno"];
-//            $respuesta["telefono"] = $usuarioBD["telefono"];
-//            $respuesta["correo"] = $usuarioBD["correo"];
-//            $respuesta["usuario"] = $usuarioBD["usuario"];
-//            $respuesta["contrase_na"] = $usuarioBD["contrase_na"];
-//            $respuesta["empresa_id"] = $usuarioBD["empresa_id"];
 
             $arreglo = array();
             while ($row = $usuarioBD->fetch()) {
@@ -275,28 +279,16 @@ class usuarios
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                 "Ha ocurrido un error probablemente no se encontro el dato");
         }
-//        } else {
-//            throw new ExcepcionApi(self::ESTADO_PARAMETROS_INCORRECTOS,
-//                utf8_encode("Correo o contrase_na invalidos"));
-//        }
-
-
-        /*
-        return
-            [
-                "estado" => self::ESTADO_CREACION_EXITOSA,
-                "mensaje" => utf8_encode("Registro con exitookokok!")
-            ];
-        */
     }
 
-    private function listarUsuariosDeEmpresa(){
+    private function listarUsuariosDeEmpresa()
+    {
         $cuerpo = file_get_contents('php://input');
         $usuario = json_decode($cuerpo);
 
-        if(!empty($usuario)) {
+        if (!empty($usuario)) {
             $ID_EMPRESA_DE_USUARIOS = $usuario->empresa_id;
-            $usuarioBD = self::obtenerUsuario(NULL, $ID_EMPRESA_DE_USUARIOS);
+            $usuarioBD = self::obtenerUsuario(self::USER_EN_EMPRESA, $ID_EMPRESA_DE_USUARIOS);
             if ($usuarioBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
@@ -318,7 +310,41 @@ class usuarios
                 throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                     "Ha ocurrido un error probablemente no se encontro el dato");
             }
-        }else{
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Se desconoce la empresa");
+        }
+    }
+
+
+    private function listarGpsDeUsuario()
+    {
+        $cuerpo = file_get_contents('php://input');
+        $usuario = json_decode($cuerpo);
+
+        if (!empty($usuario)) {
+            $ID_USUARIO = $usuario->usuario_id;
+            echo "id:".$ID_USUARIO;
+            $usuarioBD = self::obtenerUsuario(self::GPS_DE_USER, $ID_USUARIO);
+            if ($usuarioBD != NULL) {
+                http_response_code(200);
+                $arreglo = array();
+                while ($row = $usuarioBD->fetch()) {
+                        array_push($arreglo, array(
+                            "usuario_id" => $row[0],
+                            "nombre" => $row[1],
+                            "imei" => $row[2],
+                            "numero" => $row[3],
+                            "descripcion" => $row[4],
+                            "empresa_id" => $row[5]
+                    ));
+                }
+                return ["estado" => 1, "usuario" => $arreglo];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "Ha ocurrido un error probablemente no se encontro el dato");
+            }
+        } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                 "Se desconoce la empresa");
         }
@@ -326,7 +352,8 @@ class usuarios
 
 
     //private function actualizar($idEmpresa, $empresa, $idContacto)
-    private function actualizar($usuario, $idUsuario){
+    private function actualizar($usuario, $idUsuario)
+    {
         try {
             $consulta = "UPDATE " . self::NOMBRE_TABLA .
                 " SET " . self::NOMBRE . "=?," .
@@ -374,7 +401,8 @@ class usuarios
     }
 
 
-    private function eliminar($idUsuario){
+    private function eliminar($idUsuario)
+    {
         try {
             // Sentencia DELETE
             $comando = "DELETE FROM " . self::NOMBRE_TABLA .
@@ -400,13 +428,15 @@ class usuarios
      * @param $contrasenaPlana
      * @return bool|null|string
      */
-    private function encriptarContrasena($contrasenaPlana){
+    private function encriptarContrasena($contrasenaPlana)
+    {
         if ($contrasenaPlana)
             return password_hash($contrasenaPlana, PASSWORD_DEFAULT);
         else return null;
     }
 
-    private function generarClaveApi(){
+    private function generarClaveApi()
+    {
         return md5(microtime() . rand());
     }
 
@@ -481,7 +511,8 @@ class usuarios
     */
 
 
-    private function obtenerEmpresaPorCorreo($correo){
+    private function obtenerEmpresaPorCorreo($correo)
+    {
         $comando = "SELECT " .
             self::NOMBRE . "," .
             self::CONTRASENA . "," .
@@ -501,27 +532,11 @@ class usuarios
     }
 
 
-    private function obtenerUsuario($id = NULL, $id_empresa = NULL){
-        if ($id_empresa == NULL) {
-            if ($id == NULL) {
-                $consulta = "SELECT " .
-                    self::ID_USUARIO . "," .
-                    self::NOMBRE . "," .
-                    self::APPATERNO . "," .
-                    self::APMATERNO . ", " .
-                    self::TELEFONO . ", " .
-                    self::CORREO . ", " .
-                    self::USUARIO . ", " .
-                    self::CONTRASE_NA . ", " .
-                    self::ID_EMPRESA .
-                    " FROM " . self::NOMBRE_TABLA;
-                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-                if ($sentencia->execute())
-                    //return $sentencia->fetch(PDO::FETCH_ASSOC);
-                    return $sentencia;
-                else
-                    return null;
-            } else {
+    private function obtenerUsuario($tipo, $dato = NULL)
+    {
+        switch ($tipo) {
+            case self::INDIVIDUAL:
+                //uno
                 $consulta = "SELECT " .
                     self::ID_USUARIO . "," .
                     self::NOMBRE . "," .
@@ -536,40 +551,90 @@ class usuarios
                     " WHERE " . self::ID_USUARIO . "=?";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
-                $sentencia->bindParam(1, $id);
+                $sentencia->bindParam(1, $dato);
 
                 if ($sentencia->execute())
                     return $sentencia->fetch(PDO::FETCH_ASSOC);
                 else
                     return null;
-            }
-        } else {
-            $consulta = "SELECT " .
-                self::ID_USUARIO . "," .
-                self::NOMBRE . "," .
-                self::APPATERNO . "," .
-                self::APMATERNO . ", " .
-                self::TELEFONO . ", " .
-                self::CORREO . ", " .
-                self::USUARIO . ", " .
-                self::CONTRASE_NA . ", " .
-                self::ID_EMPRESA .
-                " FROM " . self::NOMBRE_TABLA .
-                " WHERE " . self::ID_EMPRESA . "=?";
-            /*SELECT g.descripcion, ec.nombre
-                FROM dbrs.gps g
-	        INNER JOIN dbrs.empresa_cliente ec ON ( g.empresa_id = ec.empresa_id  )
-            WHERE ec.empresa_id = X*/
-            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-            $sentencia->bindParam(1, $id_empresa);
+                break;
+            case self::MULTIPLES:
+                //varios
+                $consulta = "SELECT " .
+                    self::ID_USUARIO . "," .
+                    self::NOMBRE . "," .
+                    self::APPATERNO . "," .
+                    self::APMATERNO . ", " .
+                    self::TELEFONO . ", " .
+                    self::CORREO . ", " .
+                    self::USUARIO . ", " .
+                    self::CONTRASE_NA . ", " .
+                    self::ID_EMPRESA .
+                    " FROM " . self::NOMBRE_TABLA;
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
+            case self::USER_EN_EMPRESA:
+                //de empresa
+                $consulta = "SELECT " .
+                    self::ID_USUARIO . "," .
+                    self::NOMBRE . "," .
+                    self::APPATERNO . "," .
+                    self::APMATERNO . ", " .
+                    self::TELEFONO . ", " .
+                    self::CORREO . ", " .
+                    self::USUARIO . ", " .
+                    self::CONTRASE_NA . ", " .
+                    self::ID_EMPRESA .
+                    " FROM " . self::NOMBRE_TABLA .
+                    " WHERE " . self::ID_EMPRESA . "=?";
+                /*SELECT g.descripcion, ec.nombre
+                    FROM dbrs.gps g
+                INNER JOIN dbrs.empresa_cliente ec ON ( g.empresa_id = ec.empresa_id  )
+                WHERE ec.empresa_id = X*/
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $dato);
 
-            if ($sentencia->execute())
-                return $sentencia;
-            else
-                return null;
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
+
+            case self::GPS_DE_USER:
+                $consulta = "SELECT " .
+                    "u." . self::ID_USUARIO . "," .
+                    "u." . self::NOMBRE . "," .
+                    "g.imei," .
+                    "g.numero," .
+                    "g.descripcion," .
+                    "g.empresa_id" .
+                    " FROM " . self::NOMBRE_TABLA . " u" .
+                    " INNER JOIN enlace e ON (u.usuario_id = e.usuario_id)" .
+                    " INNER JOIN gps g ON (e.gps_imei = g.imei)" .
+                    " WHERE u." . self::ID_USUARIO . "=?";
+
+                echo $consulta;
+
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $dato);
+
+
+                /* SELECT u.usuario_id, u.nombre, g.imei, g.numero, g.descripcion, g.empresa_id
+FROM dbrs.usuarios u
+	INNER JOIN dbrs.enlace e ON ( u.usuario_id = e.usuario_id  )
+		INNER JOIN dbrs.gps g ON ( e.gps_imei = g.imei  )
+WHERE u.usuario_id = 1*/
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
         }
     }
-
 
 
     /**
