@@ -113,6 +113,7 @@ class usuarios
         //$idUsuario = usuarios::autorizar();
 
         if (!empty($peticion[0])) {
+
             if (self::eliminar($peticion[0]) > 0) {
                 http_response_code(200);
                 return [
@@ -121,7 +122,7 @@ class usuarios
                 ];
             } else {
                 throw new ExcepcionApi(self::ESTADO_NO_ENCONTRADO,
-                    "La empresa a la que intenta acceder no existe", 404);
+                    "El usuario que intenta acceder no existe", 404);
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_ERROR_PARAMETROS, "Falta id", 422);
@@ -130,7 +131,7 @@ class usuarios
     }
 
     /**
-     * Crea una nueva empresa en la tabla "empresa"
+     * Crea un nuevo usuario en la tabla "usuarios"
      * @param mixed $datosUsuario columnas del registro
      * @return int codigo para determinar si la insercion fue exitosa
      */
@@ -147,13 +148,10 @@ class usuarios
         $contrase_na = $datosUsuario->contrase_na;
         $contrasenaEncriptada = self::encriptarContrasena($contrase_na);
 
-        $clave_api = self::generarClaveApi();
-
         try {
 
             $pdo = ConexionBD::obtenerInstancia()->obtenerBD();
 
-            // Sentencia INSERT
             $comando = "INSERT INTO " . self::NOMBRE_TABLA . " ( " .
                 self::NOMBRE . "," .
                 self::APPATERNO . "," .
@@ -162,9 +160,8 @@ class usuarios
                 self::CORREO . "," .
                 self::USUARIO . "," .
                 self::CONTRASE_NA . "," .
-                self::ID_EMPRESA . "," .
-                self::CLAVE_API . ")" .
-                " VALUES(?,?,?,?,?,?,?,?,?)";
+                self::ID_EMPRESA . ")" .
+                " VALUES(?,?,?,?,?,?,?,?)";
 
 
             $sentencia = $pdo->prepare($comando);
@@ -177,7 +174,6 @@ class usuarios
             $sentencia->bindParam(6, $usuario);
             $sentencia->bindParam(7, $contrasenaEncriptada);
             $sentencia->bindParam(8, $empresa_id);
-            $sentencia->bindParam(9, $clave_api);
 
             $resultado = $sentencia->execute();
 
@@ -191,7 +187,6 @@ class usuarios
         }
 
     }
-
 
     private function listarUnoId()
     {
@@ -227,21 +222,6 @@ class usuarios
             throw new ExcepcionApi(self::ESTADO_NO_ENCONTRADO,
                 "Especifique el indice ");
         }
-
-
-//        } else {
-//            throw new ExcepcionApi(self::ESTADO_PARAMETROS_INCORRECTOS,
-//                utf8_encode("Correo o contrase_na invalidos"));
-//        }
-
-
-        /*
-        return
-            [
-                "estado" => self::ESTADO_CREACION_EXITOSA,
-                "mensaje" => utf8_encode("Registro con exitookokok!")
-            ];
-        */
     }
 
     private function listarVarios()
@@ -249,7 +229,6 @@ class usuarios
 //        $body = file_get_contents('php://input');
 //        $usuario = json_decode($body);
 
-        // if (self::autenticar($correo, $contrasena)) {
         $usuarioBD = self::obtenerUsuario(self::MULTIPLES, NULL);
 
         if ($usuarioBD != NULL) {
@@ -316,7 +295,6 @@ class usuarios
         }
     }
 
-
     private function listarGpsDeUsuario()
     {
         $cuerpo = file_get_contents('php://input');
@@ -324,19 +302,19 @@ class usuarios
 
         if (!empty($usuario)) {
             $ID_USUARIO = $usuario->usuario_id;
-            echo "id:".$ID_USUARIO;
             $usuarioBD = self::obtenerUsuario(self::GPS_DE_USER, $ID_USUARIO);
             if ($usuarioBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
                 while ($row = $usuarioBD->fetch()) {
                         array_push($arreglo, array(
-                            "usuario_id" => $row[0],
-                            "nombre" => $row[1],
-                            "imei" => $row[2],
-                            "numero" => $row[3],
-                            "descripcion" => $row[4],
-                            "empresa_id" => $row[5]
+                            "enlace_id" => $row[0],
+                            "usuario_id" => $row[1],
+                            "nombre" => $row[2],
+                            "imei" => $row[3],
+                            "numero" => $row[4],
+                            "descripcion" => $row[5],
+                            "empresa_id" => $row[6]
                     ));
                 }
                 return ["estado" => 1, "usuario" => $arreglo];
@@ -349,7 +327,6 @@ class usuarios
                 "Se desconoce la empresa");
         }
     }
-
 
     //private function actualizar($idEmpresa, $empresa, $idContacto)
     private function actualizar($usuario, $idUsuario)
@@ -400,26 +377,45 @@ class usuarios
         }
     }
 
-
     private function eliminar($idUsuario)
     {
-        try {
-            // Sentencia DELETE
-            $comando = "DELETE FROM " . self::NOMBRE_TABLA .
-                " WHERE " . self::ID_USUARIO . "=?";
+        $cantidad = self::comprobarEnlaces($idUsuario);
 
-            // Preparar la sentencia
-            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
+        if($cantidad["num_enlaces"] < 1) {
+            try {
+                // Sentencia DELETE
+                $comando = "DELETE FROM " . self::NOMBRE_TABLA .
+                    " WHERE " . self::ID_USUARIO . "=?";
 
-            $sentencia->bindParam(1, $idUsuario);
+                // Preparar la sentencia
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
 
-            $sentencia->execute();
+                $sentencia->bindParam(1, $idUsuario);
 
-            return $sentencia->rowCount();
+                $sentencia->execute();
 
-        } catch (PDOException $e) {
-            throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+                return $sentencia->rowCount();
+
+            } catch (PDOException $e) {
+                throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+            }
+        }else{
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "El usuario cuenta con gps", 422);
         }
+    }
+
+    private function comprobarEnlaces($dato){
+        $consulta = "SELECT " .
+            "COUNT(e.usuario_id) as num_enlaces".
+            " FROM enlace e".
+            " WHERE e." . self::ID_USUARIO . "=?";
+        //select count(e.usuario_id) num_enlaces from enlace e where e.usuario_id= 9
+        $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+        $sentencia->bindParam(1, $dato);
+        if ($sentencia->execute())
+            return $sentencia->fetch(PDO::FETCH_ASSOC);
+        else
+            return null;
     }
 
 
@@ -591,10 +587,7 @@ class usuarios
                     self::ID_EMPRESA .
                     " FROM " . self::NOMBRE_TABLA .
                     " WHERE " . self::ID_EMPRESA . "=?";
-                /*SELECT g.descripcion, ec.nombre
-                    FROM dbrs.gps g
-                INNER JOIN dbrs.empresa_cliente ec ON ( g.empresa_id = ec.empresa_id  )
-                WHERE ec.empresa_id = X*/
+
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
                 $sentencia->bindParam(1, $dato);
 
@@ -606,6 +599,7 @@ class usuarios
 
             case self::GPS_DE_USER:
                 $consulta = "SELECT " .
+                    "e.enlace_id,".
                     "u." . self::ID_USUARIO . "," .
                     "u." . self::NOMBRE . "," .
                     "g.imei," .
@@ -617,17 +611,9 @@ class usuarios
                     " INNER JOIN gps g ON (e.gps_imei = g.imei)" .
                     " WHERE u." . self::ID_USUARIO . "=?";
 
-                echo $consulta;
-
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
                 $sentencia->bindParam(1, $dato);
 
-
-                /* SELECT u.usuario_id, u.nombre, g.imei, g.numero, g.descripcion, g.empresa_id
-FROM dbrs.usuarios u
-	INNER JOIN dbrs.enlace e ON ( u.usuario_id = e.usuario_id  )
-		INNER JOIN dbrs.gps g ON ( e.gps_imei = g.imei  )
-WHERE u.usuario_id = 1*/
                 if ($sentencia->execute())
                     return $sentencia;
                 else

@@ -84,14 +84,12 @@ class gps
 
     public static function put($peticion)
     {
-        //$idEmpresa = empresa_cliente::autorizar();
 
         //$peticion[0] : es lo indicado e la direccion :http://localhost/api.rs.com/v1/usuarios/2 = 2
         if (!empty($peticion[0])) {
             $body = file_get_contents('php://input');
             $gps = json_decode($body);
 
-            //if (self::actualizar($idEmpresa, $empresa, $peticion[0]) > 0) {
             if (self::actualizar($gps, $peticion[0]) > 0) {
                 http_response_code(200);
                 return [
@@ -100,7 +98,7 @@ class gps
                 ];
             } else {
                 throw new ExcepcionApi(self::ESTADO_NO_ENCONTRADO,
-                    "El usuario al que intentas acceder no existe", 404);
+                    "El gps al que intentas acceder no existe", 404);
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_ERROR_PARAMETROS, "Falta id", 422);
@@ -109,8 +107,6 @@ class gps
 
     public static function delete($peticion)
     {
-        //$idUsuario = usuarios::autorizar();
-
         if (!empty($peticion[0])) {
             if (self::eliminar($peticion[0]) > 0) {
                 http_response_code(200);
@@ -120,7 +116,7 @@ class gps
                 ];
             } else {
                 throw new ExcepcionApi(self::ESTADO_NO_ENCONTRADO,
-                    "La empresa a la que intenta acceder no existe", 404);
+                    "El gps al que intenta acceder no existe", 404);
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_ERROR_PARAMETROS, "Falta id", 422);
@@ -129,8 +125,8 @@ class gps
     }
 
     /**
-     * Crea una nueva empresa en la tabla "empresa"
-     * @param mixed $datosUsuario columnas del registro
+     * Crea un nuevo gps en la tabla "gps"
+     * @param mixed $datosGps columnas del registro
      * @return int codigo para determinar si la insercion fue exitosa
      */
     private function crear($datosGPS)
@@ -448,7 +444,7 @@ class gps
                     " LEFT JOIN enlace e ON (g.imei = e.gps_imei)".
                     " WHERE g." . self::ID_EMPRESA . "=?".
                     " GROUP BY g.imei".
-                    " HAVING cantidadEnlaces < 6 ";
+                    " HAVING cantidadEnlaces < 7 ";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
                 $sentencia->bindParam(1, $dato);

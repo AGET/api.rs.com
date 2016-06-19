@@ -35,6 +35,25 @@ class enlace
         }
     }
 
+    public static function delete($peticion)
+    {
+        if (!empty($peticion[0])) {
+            if (self::eliminar($peticion[0]) > 0) {
+                http_response_code(200);
+                return [
+                    "estado" => self::CODIGO_EXITO,
+                    "mensaje" => "Registro eliminado correctamente"
+                ];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_NO_ENCONTRADO,
+                    "El enlace al que intenta acceder no existe", 404);
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_ERROR_PARAMETROS, "Falta id", 422);
+        }
+
+    }
+
     /**
      * Crea un nuevo enlace en la base de datos
      */
@@ -124,4 +143,25 @@ class enlace
             return null;
     }
 
+
+    private function eliminar($idEnlace)
+    {
+        try {
+            // Sentencia DELETE
+            $comando = "DELETE FROM " . self::NOMBRE_TABLA .
+                " WHERE " . self::ENLACE_ID . "=?";
+
+            // Preparar la sentencia
+            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
+
+            $sentencia->bindParam(1, $idEnlace);
+
+            $sentencia->execute();
+
+            return $sentencia->rowCount();
+
+        } catch (PDOException $e) {
+            throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+        }
+    }
 }
