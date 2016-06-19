@@ -10,11 +10,12 @@ class gps
     const NUMERO = "numero";
     const ID_EMPRESA = "empresa_id";
 
-    const INDIVIDUAL = "uno";
-    const TODOS = "todos";
-    const ENLAZADOS = "enlace";
-    const LIBRES = "libres";
-    const ENLACES_DISPONIBLES = "enlaces";
+    const TP_INDIVIDUAL = "uno";
+    const TP_TODOS = "todos";
+    const TP_ENLAZADOS = "enlace";
+    const TP_LIBRES = "libres";
+    const TP_ENLACES_DISPONIBLES = "enlaces";
+    const TP_USUARIOS_ENLAZADOS = "user_enlazados";
 
     const ESTADO_CREACION_EXITOSA = 1;
     const ESTADO_CREACION_FALLIDA = 2;
@@ -49,7 +50,9 @@ class gps
             return self::listarGpsDeEmpresa();
         } else if ($peticion[0] == 'listarGpsDeEmpresaDisponibles') {
             return self::listarGpsDeEmpresaDisponibles();
-        } else {
+        } else if ($peticion[0] == 'listarGpsUsuarioEnlazados') {
+            return self::listarGpsUsuarioEnlazados();
+        }else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
 
@@ -177,7 +180,7 @@ class gps
         if (isset($gps)) {
             $imei = $gps->imei;
 
-            $gpsBD = self::obtenerGps(self::INDIVIDUAL, $imei);
+            $gpsBD = self::obtenerGps(self::TP_INDIVIDUAL, $imei);
 
             if ($gpsBD != NULL) {
                 http_response_code(200);
@@ -199,7 +202,7 @@ class gps
     
     private function listarVarios()
     {
-        $usuarioBD = self::obtenerGps(self::TODOS);
+        $usuarioBD = self::obtenerGps(self::TP_TODOS);
 
         if ($usuarioBD != NULL) {
             http_response_code(200);
@@ -233,7 +236,7 @@ class gps
         if (!empty($gps)) {
             $ID_EMPRESA_DE_GPS = $gps->empresa_id;
 
-            $gpsBD = self::obtenerGps(self::ENLAZADOS,$ID_EMPRESA_DE_GPS);
+            $gpsBD = self::obtenerGps(self::TP_ENLAZADOS,$ID_EMPRESA_DE_GPS);
             if ($gpsBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
@@ -266,7 +269,7 @@ class gps
         if (!empty($gps)) {
             $ID_EMPRESA_DE_GPS = $gps->empresa_id;
 
-            $gpsBD = self::obtenerGps(self::ENLACES_DISPONIBLES, $ID_EMPRESA_DE_GPS);
+            $gpsBD = self::obtenerGps(self::TP_ENLACES_DISPONIBLES, $ID_EMPRESA_DE_GPS);
             if ($gpsBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
@@ -291,9 +294,49 @@ class gps
         }
     }
 
+    private function listarGpsUsuarioEnlazados(){
+        /*
+         * SELECT g.imei, g.numero, g.descripcion, e.enlace_id, e.usuario_id,count(g.imei) as cantidadEnlaces FROM dbrs.gps g left JOIN dbrs.enlace e ON ( g.imei = e.gps_imei  ) WHERE g.empresa_id = 1 GROUP BY g.imei having cantidadEnlaces < 6
+         * */
+        $cuerpo = file_get_contents('php://input');
+        $gps = json_decode($cuerpo);
+
+        if (!empty($gps)) {
+            $IMEI_DE_GPS = $gps->imei;
+
+            $gpsBD = self::obtenerGps(self::TP_USUARIOS_ENLAZADOS, $IMEI_DE_GPS);
+            if ($gpsBD != NULL) {
+                http_response_code(200);
+                $arreglo = array();
+                while ($row = $gpsBD->fetch()) {
+                    array_push($arreglo, array(
+                        "enlace_id" => $row[0],
+                        "enlaceUsuario" => $row[1],
+                        "usuario_id" => $row[2],
+                        "nombre" => $row[3],
+                        "ap_paterno" => $row[4],
+                        "ap_materno" => $row[5],
+                        "telefono" => $row[6],
+                        "correo" => $row[7],
+                        "usuario" => $row[8],
+                        "empresa_id" => $row[9],
+                        "cantidadEnlaces" => $row[10]
+                    ));
+                }
+                return ["estado" => 1, "gps" => $arreglo];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "Ha ocurrido un error probablemente no se encontro el dato");
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Se desconoce la empresa del gps");
+        }
+    }
+
     private function listarLibres()
     {
-        $gpsBD = self::obtenerGps(self::LIBRES);
+        $gpsBD = self::obtenerGps(self::TP_LIBRES);
         if ($gpsBD != NULL) {
             http_response_code(200);
             $arreglo = array();
@@ -370,7 +413,7 @@ class gps
     private function obtenerGps($tipoPeticion, $dato = NULL)
     {
         switch ($tipoPeticion) {
-            case self::INDIVIDUAL:
+            case self::TP_INDIVIDUAL:
                 $consulta = "SELECT " .
                     self::IMEI . "," .
                     self::NUMERO . "," .
@@ -387,7 +430,7 @@ class gps
                 else
                     return null;
                 break;
-            case self::LIBRES:
+            case self::TP_LIBRES:
                 $consulta = "SELECT " .
                     self::IMEI . ", " .
                     self::NUMERO . ", " .
@@ -401,7 +444,7 @@ class gps
                 } else
                     return null;
                 break;
-            case self::TODOS:
+            case self::TP_TODOS:
                 $consulta = "SELECT " .
                     self::IMEI . "," .
                     self::NUMERO . "," .
@@ -414,7 +457,7 @@ class gps
                 else
                     return null;
                 break;
-            case self::ENLAZADOS:
+            case self::TP_ENLAZADOS:
                 $consulta = "SELECT " .
                     self::IMEI . "," .
                     self::NUMERO . "," .
@@ -431,7 +474,7 @@ class gps
                 else
                     return null;
                 break;
-            case self::ENLACES_DISPONIBLES:
+            case self::TP_ENLACES_DISPONIBLES:
                 $consulta =
                     "SELECT " .
                         "g.".self::IMEI . "," .
@@ -454,6 +497,37 @@ class gps
                 else
                     return null;
                 break;
+            case self::TP_USUARIOS_ENLAZADOS:
+                $consulta =
+                    "SELECT " .
+                    "e.enlace_id,".
+                    "e.usuario_id as enlaceUsuario,".
+                    "u.usuario_id,".
+                    "u.nombre,".
+                    "u.ap_paterno,".
+                    "u.ap_materno,".
+                    "u.telefono,".
+                    "u.correo,".
+                    "u.usuario,".
+                    "u.empresa_id,".
+                    "count(g.imei) as cantidadEnlaces".
+                    " FROM " . self::NOMBRE_TABLA ." g".
+                    " LEFT JOIN enlace e ON (g.imei = e.gps_imei)".
+                    " LEFT JOIN usuarios u ON ( e.usuario_id = u.usuario_id)".
+                    " WHERE g." . self::IMEI . "=?".
+                    " GROUP BY e.usuario_id";
+
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+
+                $sentencia->bindParam(1, $dato);
+
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
+
+
         }
     }
 }
