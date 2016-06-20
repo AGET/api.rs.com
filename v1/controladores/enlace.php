@@ -7,7 +7,8 @@ class enlace
     const NOMBRE_TABLA = "enlace";
     const ENLACE_ID = "enlace_id";
     const USUARIO_ID = "usuario_id";
-    const GPS_IMEI = "gps_imei";
+    const GPS_ID = "gps_id";
+    //const GPS_IMEI = "gps_imei";
 
     const ESTADO_CREACION_EXITOSA = 1;
     const ESTADO_CREACION_FALLIDA = 2;
@@ -94,8 +95,8 @@ class enlace
     private function crear($datosEnlace)
     {
         $usuario_id = $datosEnlace->usuario_id;
-        $gps_imei = $datosEnlace->gps_imei;
-        $cantidad = self::repetido($gps_imei,$usuario_id);
+        $gps_id = $datosEnlace->gps_id;
+        $cantidad = self::repetido($gps_id,$usuario_id);
 
         if($cantidad["cantidad"] < 1) {
             try {
@@ -104,13 +105,13 @@ class enlace
                 // Sentencia INSERT
                 $comando = "INSERT INTO " . self::NOMBRE_TABLA . " ( " .
                     self::USUARIO_ID . "," .
-                    self::GPS_IMEI . ")" .
+                    self::GPS_ID . ")" .
                     " VALUES(?,?)";
 
                 $sentencia = $pdo->prepare($comando);
 
                 $sentencia->bindParam(1, $usuario_id);
-                $sentencia->bindParam(2, $gps_imei);
+                $sentencia->bindParam(2, $gps_id);
 
                 $resultado = $sentencia->execute();
 
@@ -128,14 +129,14 @@ class enlace
 
     }
 
-    public function repetido($codigoImei, $codigoUsuario){
+    public function repetido($codigoId, $codigoUsuario){
         $consulta = "SELECT " .
             "COUNT(enlace_id) as cantidad".
             " FROM " . self::NOMBRE_TABLA .
-            " WHERE " . self::GPS_IMEI . "=?".
+            " WHERE " . self::GPS_ID . "=?".
             " AND usuario_id =?";
         $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-        $sentencia->bindParam(1, $codigoImei);
+        $sentencia->bindParam(1, $codigoId);
         $sentencia->bindParam(2, $codigoUsuario);
         if ($sentencia->execute())
             return $sentencia->fetch(PDO::FETCH_ASSOC);

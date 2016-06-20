@@ -5,6 +5,7 @@ class gps
 {
     // Datos de la tabla "usuario"
     const NOMBRE_TABLA = "gps";
+    const GPS_ID = "gps_id";
     const IMEI = "imei";
     const DESCRIPCION = "descripcion";
     const NUMERO = "numero";
@@ -178,12 +179,13 @@ class gps
         $gps = json_decode($body);
 
         if (isset($gps)) {
-            $imei = $gps->imei;
+            $gps_id = $gps->gps_id;
 
-            $gpsBD = self::obtenerGps(self::TP_INDIVIDUAL, $imei);
+            $gpsBD = self::obtenerGps(self::TP_INDIVIDUAL, $gps_id);
 
             if ($gpsBD != NULL) {
                 http_response_code(200);
+                $respuesta["gps_id"] = $gpsBD["gps_id"];
                 $respuesta["imei"] = $gpsBD["imei"];
                 $respuesta["numero"] = $gpsBD["numero"];
                 $respuesta["descripcion"] = $gpsBD["descripcion"];
@@ -210,10 +212,11 @@ class gps
             $arreglo = array();
             while ($row = $usuarioBD->fetch()) {
                 array_push($arreglo, array(
-                    "imei" => $row[0],
-                    "numerp" => $row[1],
-                    "descripcion" => $row[2],
-                    "empresa_id" => $row[3]
+                    "gps_id" => $row[0],
+                    "imei" => $row[1],
+                    "numerp" => $row[2],
+                    "descripcion" => $row[3],
+                    "empresa_id" => $row[4]
                 ));
             }
 //            foreach ($arreglo as $keys) {
@@ -242,10 +245,11 @@ class gps
                 $arreglo = array();
                 while ($row = $gpsBD->fetch()) {
                     array_push($arreglo, array(
-                        "imei" => $row[0],
-                        "numero" => $row[1],
-                        "descripcion" => $row[2],
-                        "empresa_id" => $row[3]
+                        "gps_id" => $row[0],
+                        "imei" => $row[1],
+                        "numero" => $row[2],
+                        "descripcion" => $row[3],
+                        "empresa_id" => $row[4]
                     ));
                 }
                 return ["estado" => 1, "gps" => $arreglo];
@@ -275,12 +279,13 @@ class gps
                 $arreglo = array();
                 while ($row = $gpsBD->fetch()) {
                     array_push($arreglo, array(
-                        "imei" => $row[0],
-                        "numero" => $row[1],
-                        "descripcion" => $row[2],
-                        "enlace_id" => $row[3],
-                        "usuario_id" => $row[4],
-                        "cantidadEnlaces" => $row[5]
+                        "gps_id" => $row[0],
+                        "imei" => $row[1],
+                        "numero" => $row[2],
+                        "descripcion" => $row[3],
+                        "enlace_id" => $row[4],
+                        "usuario_id" => $row[5],
+                        "cantidadEnlaces" => $row[6]
                     ));
                 }
                 return ["estado" => 1, "gps" => $arreglo];
@@ -302,9 +307,9 @@ class gps
         $gps = json_decode($cuerpo);
 
         if (!empty($gps)) {
-            $IMEI_DE_GPS = $gps->imei;
+            $GPS_ID = $gps->gps_id;
 
-            $gpsBD = self::obtenerGps(self::TP_USUARIOS_ENLAZADOS, $IMEI_DE_GPS);
+            $gpsBD = self::obtenerGps(self::TP_USUARIOS_ENLAZADOS, $GPS_ID);
             if ($gpsBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
@@ -342,10 +347,11 @@ class gps
             $arreglo = array();
             while ($row = $gpsBD->fetch()) {
                 array_push($arreglo, array(
-                    "imei" => $row[0],
-                    "numero" => $row[1],
-                    "descripcion" => $row[2],
-                    "empresa_id" => $row[3]
+                    "gps_id" => $row[0],
+                    "imei" => $row[1],
+                    "numero" => $row[2],
+                    "descripcion" => $row[3],
+                    "empresa_id" => $row[4]
                 ));
             }
             return ["estado" => 1, "gps" => $arreglo];
@@ -356,24 +362,28 @@ class gps
     }
 
     private
-    function actualizar($gps, $IMEI)
+    function actualizar($gps, $gps_id)
     {
         try {
             $consulta = "UPDATE " . self::NOMBRE_TABLA .
-                " SET " . self::NUMERO . "=?," .
+                " SET " . self::IMEI . "=?," .
+                 self::NUMERO . "=?," .
                 self::DESCRIPCION . "=?," .
                 self::ID_EMPRESA . "=?" .
-                " WHERE " . self::IMEI . "=?";
+                " WHERE " . self::GPS_ID . "=?";
 
 
             // Preparar la sentencia
             $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
-            $sentencia->bindParam(1, $numero);
-            $sentencia->bindParam(2, $descripcion);
-            $sentencia->bindParam(3, $empresa_id);
-            $sentencia->bindParam(4, $IMEI);
+            $sentencia->bindParam(1, $IMEI);
+            $sentencia->bindParam(2, $numero);
+            $sentencia->bindParam(3, $descripcion);
+            $sentencia->bindParam(4, $empresa_id);
+            $sentencia->bindParam(5, $gps_id);
 
+
+            $IMEI = $gps->imei;
             $numero = $gps->numero;
             $descripcion = $gps->descripcion;
             $empresa_id = $gps->empresa_id;
@@ -389,17 +399,17 @@ class gps
     }
 
     private
-    function eliminar($IMEI)
+    function eliminar($gps_id)
     {
         try {
             // Sentencia DELETE
             $comando = "DELETE FROM " . self::NOMBRE_TABLA .
-                " WHERE " . self::IMEI . "=?";
+                " WHERE " . self::GPS_ID . "=?";
 
             // Preparar la sentencia
             $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
 
-            $sentencia->bindParam(1, $IMEI);
+            $sentencia->bindParam(1, $gps_id);
 
             $sentencia->execute();
 
@@ -415,12 +425,13 @@ class gps
         switch ($tipoPeticion) {
             case self::TP_INDIVIDUAL:
                 $consulta = "SELECT " .
+                    self::GPS_ID . "," .
                     self::IMEI . "," .
                     self::NUMERO . "," .
                     self::DESCRIPCION . "," .
                     self::ID_EMPRESA .
                     " FROM " . self::NOMBRE_TABLA .
-                    " WHERE " . self::IMEI . "=?";
+                    " WHERE " . self::GPS_ID . "=?";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
                 $sentencia->bindParam(1, $dato);
@@ -432,6 +443,7 @@ class gps
                 break;
             case self::TP_LIBRES:
                 $consulta = "SELECT " .
+                    self::GPS_ID . ", " .
                     self::IMEI . ", " .
                     self::NUMERO . ", " .
                     self::DESCRIPCION . ", " .
@@ -446,6 +458,7 @@ class gps
                 break;
             case self::TP_TODOS:
                 $consulta = "SELECT " .
+                    self::GPS_ID . ", " .
                     self::IMEI . "," .
                     self::NUMERO . "," .
                     self::DESCRIPCION . "," .
@@ -459,6 +472,7 @@ class gps
                 break;
             case self::TP_ENLAZADOS:
                 $consulta = "SELECT " .
+                    self::GPS_ID . ", " .
                     self::IMEI . "," .
                     self::NUMERO . "," .
                     self::DESCRIPCION . "," .
@@ -477,16 +491,17 @@ class gps
             case self::TP_ENLACES_DISPONIBLES:
                 $consulta =
                     "SELECT " .
+                        "g.".self::GPS_ID . ", " .
                         "g.".self::IMEI . "," .
                         "g.".self::NUMERO . "," .
                         "g.".self::DESCRIPCION . "," .
                         "e.enlace_id,".
                         "e.usuario_id,".
-                        "count(g.imei) as cantidadEnlaces".
+                        "count(g.gps_id) as cantidadEnlaces".
                     " FROM " . self::NOMBRE_TABLA ." g".
-                    " LEFT JOIN enlace e ON (g.imei = e.gps_imei)".
+                    " LEFT JOIN enlace e ON (g.gps_id = e.gps_id)".
                     " WHERE g." . self::ID_EMPRESA . "=?".
-                    " GROUP BY g.imei".
+                    " GROUP BY g.gps_id".
                     " HAVING cantidadEnlaces < 7 ";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
@@ -510,11 +525,11 @@ class gps
                     "u.correo,".
                     "u.usuario,".
                     "u.empresa_id,".
-                    "count(g.imei) as cantidadEnlaces".
+                    "count(g.gps_id) as cantidadEnlaces".
                     " FROM " . self::NOMBRE_TABLA ." g".
-                    " LEFT JOIN enlace e ON (g.imei = e.gps_imei)".
+                    " LEFT JOIN enlace e ON (g.gps_id = e.gps_id)".
                     " LEFT JOIN usuarios u ON ( e.usuario_id = u.usuario_id)".
-                    " WHERE g." . self::IMEI . "=?".
+                    " WHERE g." . self::GPS_ID . "=?".
                     " GROUP BY e.usuario_id";
 
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
