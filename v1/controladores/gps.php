@@ -53,7 +53,9 @@ class gps
             return self::listarGpsDeEmpresaDisponibles();
         } else if ($peticion[0] == 'listarGpsUsuarioEnlazados') {
             return self::listarGpsUsuarioEnlazados();
-        }else {
+        } else if ($peticion[0] == 'sustituirGps') {
+            return self::sustituirGps();
+        } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
 
@@ -201,7 +203,7 @@ class gps
                 "Especifique el indice ");
         }
     }
-    
+
     private function listarVarios()
     {
         $usuarioBD = self::obtenerGps(self::TP_TODOS);
@@ -239,7 +241,7 @@ class gps
         if (!empty($gps)) {
             $ID_EMPRESA_DE_GPS = $gps->empresa_id;
 
-            $gpsBD = self::obtenerGps(self::TP_ENLAZADOS,$ID_EMPRESA_DE_GPS);
+            $gpsBD = self::obtenerGps(self::TP_ENLAZADOS, $ID_EMPRESA_DE_GPS);
             if ($gpsBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
@@ -263,7 +265,8 @@ class gps
         }
     }
 
-    private function listarGpsDeEmpresaDisponibles(){
+    private function listarGpsDeEmpresaDisponibles()
+    {
         /*
          * SELECT g.imei, g.numero, g.descripcion, e.enlace_id, e.usuario_id,count(g.imei) as cantidadEnlaces FROM dbrs.gps g left JOIN dbrs.enlace e ON ( g.imei = e.gps_imei  ) WHERE g.empresa_id = 1 GROUP BY g.imei having cantidadEnlaces < 6
          * */
@@ -299,7 +302,8 @@ class gps
         }
     }
 
-    private function listarGpsUsuarioEnlazados(){
+    private function listarGpsUsuarioEnlazados()
+    {
         /*
          * SELECT g.imei, g.numero, g.descripcion, e.enlace_id, e.usuario_id,count(g.imei) as cantidadEnlaces FROM dbrs.gps g left JOIN dbrs.enlace e ON ( g.imei = e.gps_imei  ) WHERE g.empresa_id = 1 GROUP BY g.imei having cantidadEnlaces < 6
          * */
@@ -313,6 +317,8 @@ class gps
             if ($gpsBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
+                echo "mirame: " . $gpsBD->columnCount();
+
                 while ($row = $gpsBD->fetch()) {
                     array_push($arreglo, array(
                         "enlace_id" => $row[0],
@@ -361,13 +367,147 @@ class gps
         }
     }
 
-    private
+    private function sustituirGps()
+    {
+        $cuerpo = file_get_contents('php://input');
+        $gps = json_decode($cuerpo);
+
+        if (!empty($gps)) {
+
+            //$empresa_id = $gps->empresa_id;
+
+            $gps_id_anterior = $gps->gps_id_anterior;
+
+            $gps_id_nuevo = $gps->gps_id_nuevo;
+
+            /*
+            $imei__nuevo = $gps->imei_nuevo;
+            $numero__nuevo = $gps->numero_nuevo;
+            $descripcion_nuevo = $gps->descripcion_nuevo;*/
+            if (self::actualizar($gps, $gps_id_nuevo) > 0) {
+
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "No se realizo la actualizacion del gps");
+            }
+
+
+            $cantidadEnlaces = self::verificareEnlaces($gps_id_anterior);
+            if ($cantidadEnlaces > 0) {
+                echo "con enlaces";
+
+                //paso 4
+                if (self::sustituirEnlaces($gps_id_nuevo, $gps_id_anterior) > 0) {
+
+                } else {
+                    throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                        "No se intercambiaaron los datos de enlaces");
+                }
+                // paso 5
+                if (self::sustituirDetalles($gps_id_nuevo, $gps_id_anterior) > 0) {
+
+                } else {
+                    throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                        "No se intercambiaaron los datos de detalle");
+                }
+            } else {
+                echo "sin enlaces";
+            }
+            //paso 6
+            if (self::eliminarDeLaEmpresa($gps_id_anterior) > 0) {
+                http_response_code(200);
+                return [
+                    "estado" => self::CODIGO_EXITO,
+                    "mensaje" => "Exito en el cambio"
+                ];
+
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "No se intercambiaaron los datos de detalle");
+            }
+        }
+    }
+
+    private function verificareEnlaces($dato)
+    {
+        $consulta = "SELECT " .
+            "g." . self::GPS_ID . ", " .
+            "g." . self::IMEI . ", " .
+            "g." . self::NUMERO . ", " .
+            "g." . self::DESCRIPCION . ", " .
+            "g." . self::ID_EMPRESA .
+            " FROM " . self::NOMBRE_TABLA . " g" .
+            " INNER JOIN enlace e ON ( g.gps_id = e.gps_id  )" .
+            " WHERE g." . self::GPS_ID . "=?";
+
+        $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+        $sentencia->bindParam(1, $dato);
+
+        if ($sentencia->execute())
+            return $sentencia->rowCount();
+        else
+            return null;
+    }
+
+    private function sustituirEnlaces($gps_nuevo, $gps_anterior)
+    {
+        $consulta = "UPDATE enlace " .
+            " SET " . self::GPS_ID . "=?" .
+            " WHERE " . self::GPS_ID . "=?";
+
+        // Preparar la sentencia
+        $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+        $sentencia->bindParam(1, $gps_nuevo);
+        $sentencia->bindParam(2, $gps_anterior);
+        // Ejecutar la sentencia
+        $sentencia->execute();
+        return $sentencia->rowCount();
+    }
+
+    private function sustituirDetalles($gps_nuevo, $gps_anterior)
+    {
+        $consulta = "UPDATE detalle " .
+            " SET " . self::GPS_ID . "=?" .
+            " WHERE " . self::GPS_ID . "=?";
+
+        // Preparar la sentencia
+        $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+        $sentencia->bindParam(1, $gps_nuevo);
+        $sentencia->bindParam(2, $gps_anterior);
+        // Ejecutar la sentencia
+        $sentencia->execute();
+        return $sentencia->rowCount();
+    }
+
+    private function eliminarDeLaEmpresa($gps_id_anterior)
+    {
+        try {
+            $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                " SET " . self::ID_EMPRESA . "=NULL" .
+                " WHERE " . self::GPS_ID . "=?";
+
+            // Preparar la sentencia
+            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+
+            $sentencia->bindParam(1, $gps_id_anterior);
+
+
+            // Ejecutar la sentencia
+            $sentencia->execute();
+
+            return $sentencia->rowCount();
+
+        } catch (PDOException $e) {
+            throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+        }
+    }
+
     function actualizar($gps, $gps_id)
     {
         try {
             $consulta = "UPDATE " . self::NOMBRE_TABLA .
                 " SET " . self::IMEI . "=?," .
-                 self::NUMERO . "=?," .
+                self::NUMERO . "=?," .
                 self::DESCRIPCION . "=?," .
                 self::ID_EMPRESA . "=?" .
                 " WHERE " . self::GPS_ID . "=?";
@@ -491,17 +631,17 @@ class gps
             case self::TP_ENLACES_DISPONIBLES:
                 $consulta =
                     "SELECT " .
-                        "g.".self::GPS_ID . ", " .
-                        "g.".self::IMEI . "," .
-                        "g.".self::NUMERO . "," .
-                        "g.".self::DESCRIPCION . "," .
-                        "e.enlace_id,".
-                        "e.usuario_id,".
-                        "count(g.gps_id) as cantidadEnlaces".
-                    " FROM " . self::NOMBRE_TABLA ." g".
-                    " LEFT JOIN enlace e ON (g.gps_id = e.gps_id)".
-                    " WHERE g." . self::ID_EMPRESA . "=?".
-                    " GROUP BY g.gps_id".
+                    "g." . self::GPS_ID . ", " .
+                    "g." . self::IMEI . "," .
+                    "g." . self::NUMERO . "," .
+                    "g." . self::DESCRIPCION . "," .
+                    "e.enlace_id," .
+                    "e.usuario_id," .
+                    "count(g.gps_id) as cantidadEnlaces" .
+                    " FROM " . self::NOMBRE_TABLA . " g" .
+                    " LEFT JOIN enlace e ON (g.gps_id = e.gps_id)" .
+                    " WHERE g." . self::ID_EMPRESA . "=?" .
+                    " GROUP BY g.gps_id" .
                     " HAVING cantidadEnlaces < 7 ";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
@@ -515,21 +655,21 @@ class gps
             case self::TP_USUARIOS_ENLAZADOS:
                 $consulta =
                     "SELECT " .
-                    "e.enlace_id,".
-                    "e.usuario_id as enlaceUsuario,".
-                    "u.usuario_id,".
-                    "u.nombre,".
-                    "u.ap_paterno,".
-                    "u.ap_materno,".
-                    "u.telefono,".
-                    "u.correo,".
-                    "u.usuario,".
-                    "u.empresa_id,".
-                    "count(g.gps_id) as cantidadEnlaces".
-                    " FROM " . self::NOMBRE_TABLA ." g".
-                    " LEFT JOIN enlace e ON (g.gps_id = e.gps_id)".
-                    " LEFT JOIN usuarios u ON ( e.usuario_id = u.usuario_id)".
-                    " WHERE g." . self::GPS_ID . "=?".
+                    "e.enlace_id," .
+                    "e.usuario_id as enlaceUsuario," .
+                    "u.usuario_id," .
+                    "u.nombre," .
+                    "u.ap_paterno," .
+                    "u.ap_materno," .
+                    "u.telefono," .
+                    "u.correo," .
+                    "u.usuario," .
+                    "u.empresa_id," .
+                    "count(g.gps_id) as cantidadEnlaces" .
+                    " FROM " . self::NOMBRE_TABLA . " g" .
+                    " LEFT JOIN enlace e ON (g.gps_id = e.gps_id)" .
+                    " LEFT JOIN usuarios u ON ( e.usuario_id = u.usuario_id)" .
+                    " WHERE g." . self::GPS_ID . "=?" .
                     " GROUP BY e.usuario_id";
 
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
@@ -541,8 +681,6 @@ class gps
                 else
                     return null;
                 break;
-
-
         }
     }
 }

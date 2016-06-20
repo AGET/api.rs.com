@@ -298,7 +298,7 @@ class empresa_cliente
             $sentencia->bindParam(4, $status);
             $sentencia->bindParam(5, $idEmpresa);
 
-            $nombre = $empresa->nombre;
+            if(empty($nombre = $empresa->nombre));
             $telefono = $empresa->telefono;
             $correo = $empresa->correo;
             $status = $empresa->status;
