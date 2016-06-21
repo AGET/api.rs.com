@@ -80,12 +80,11 @@ class empresa_cliente
     public static function put($peticion)
     {
         //$idEmpresa = empresa_cliente::autorizar();
-
         if (!empty($peticion[0])) {
             $body = file_get_contents('php://input');
             $empresa = json_decode($body);
-
             //if (self::actualizar($idEmpresa, $empresa, $peticion[0]) > 0) {
+
             if (self::actualizar($empresa, $peticion[0]) > 0) {
                 http_response_code(200);
                 return [
@@ -298,7 +297,7 @@ class empresa_cliente
             $sentencia->bindParam(4, $status);
             $sentencia->bindParam(5, $idEmpresa);
 
-            if(empty($nombre = $empresa->nombre));
+            $nombre = $empresa->nombre;
             $telefono = $empresa->telefono;
             $correo = $empresa->correo;
             $status = $empresa->status;

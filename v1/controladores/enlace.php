@@ -19,6 +19,9 @@ class enlace
     const ESTADO_FALLA_DESCONOCIDA = 7;
     const ESTADO_PARAMETROS_INCORRECTOS = 8;
 
+
+    const TP_OBTENER_TELEFONOS_ENLAZADOS = "ObtenerLosTelefonosUsuarioGpsEnlazados";
+
     const CODIGO_EXITO = 1;
     const ESTADO_EXITO = 1;
     const ESTADO_ERROR = 2;
@@ -30,7 +33,9 @@ class enlace
     {
         if ($peticion[0] == 'registro') {
             return self::registrar();
-        } else {
+        }if ($peticion[0] == 'listarTelefonos') {
+        return self::listarTelefonos();
+    } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
     }
@@ -82,9 +87,6 @@ class enlace
             throw new ExcepcionApi(self::ESTADO_ERROR_PARAMETROS, "Faltan parametros", 422);
         }
     }
-
-
-
 
     /**
      * Crea un nuevo enlace en la tabla "enlace"
@@ -162,6 +164,63 @@ class enlace
 
         } catch (PDOException $e) {
             throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+        }
+    }
+
+
+
+    private function listarTelefonos()
+    {
+        $cuerpo = file_get_contents('php://input');
+        $enlace = json_decode($cuerpo);
+
+        if (!empty($enlace)) {
+            $ID_EMPRESA = $enlace->empresa_id;
+
+            $enlaceBD = self::obtenerTelefonosEnlazados(self::TP_OBTENER_TELEFONOS_ENLAZADOS, $ID_EMPRESA);
+            if ($enlaceBD != NULL) {
+                http_response_code(200);
+                $arreglo = array();
+                while ($row = $enlaceBD->fetch()) {
+                    array_push($arreglo, array(
+                        "telefono" => $row[0],
+                        "numero" => $row[1]
+                    ));
+                }
+                return ["estado" => 1, "enlace" => $arreglo];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "Ha ocurrido un error probablemente no se encontro el dato");
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Se desconoce la empresa del gps");
+        }
+    }
+
+
+
+    private function obtenerTelefonosEnlazados($tipoPeticion, $dato)
+    {
+        switch ($tipoPeticion) {
+            case self::TP_OBTENER_TELEFONOS_ENLAZADOS:
+                $consulta =
+                    "SELECT " .
+                    "u.telefono,".
+                    "g.numero" .
+                    " FROM " . self::NOMBRE_TABLA . " e" .
+                    " INNER JOIN gps g ON (e.gps_id = g.gps_id)" .
+                    " INNER JOIN usuarios u ON ( e.usuario_id = u.usuario_id)" .
+                    " WHERE u.empresa_id=?";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+
+                $sentencia->bindParam(1, $dato);
+
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
         }
     }
 }
