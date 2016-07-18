@@ -22,6 +22,11 @@ class empresa_cliente
     const ESTADO_FALLA_DESCONOCIDA = 7;
     const ESTADO_PARAMETROS_INCORRECTOS = 8;
 
+    const LIST_INDIVIDUAL = "uno";
+    const LIST_MULTIPLES = "varios";
+    const LIST_HABILITADO = "habiltados";
+    const LIST_DESHABILITADO = "deshabilitados";
+    const LIST_NOMBRE = "nombre";
 
     const CODIGO_EXITO = 1;
     const ESTADO_EXITO = 1;
@@ -40,6 +45,10 @@ class empresa_cliente
             return self::listarUnoId();
         } else if ($peticion[0] == 'listarVarios') {
             return self::listarVarios();
+        } else if ($peticion[0] == 'listarHabilitado') {
+            return self::listarHabilitado();
+        } else if ($peticion[0] == 'listarDeshabilitado') {
+            return self::listarDeshabilitado();
         } else if ($peticion[0] == 'listarPorNombre') {
             return self::listarPorNombre();
         } else {
@@ -183,7 +192,7 @@ class empresa_cliente
 
             if ($id != NULL) {
 
-                $usuarioBD = self::obtenerEmpresa($id, NULL);
+                $usuarioBD = self::obtenerEmpresa(self::LIST_INDIVIDUAL, $id, NULL);
 
                 if ($usuarioBD != NULL) {
                     http_response_code(200);
@@ -221,7 +230,7 @@ class empresa_cliente
 
             if ($nombre != NULL) {
 
-                $usuarioBD = self::obtenerEmpresa(NULL, $nombre);
+                $usuarioBD = self::obtenerEmpresa(self::LIST_NOMBRE, NULL, $nombre);
 
                 if ($usuarioBD != NULL) {
                     http_response_code(200);
@@ -250,7 +259,65 @@ class empresa_cliente
 
     private function listarVarios()
     {
-        $usuarioBD = self::obtenerEmpresa(NULL, NULL);
+        $usuarioBD = self::obtenerEmpresa(self::LIST_MULTIPLES, NULL, NULL);
+
+        if ($usuarioBD != NULL) {
+            http_response_code(200);
+
+            $arreglo = array();
+            while ($row = $usuarioBD->fetch()) {
+                array_push($arreglo, array(
+                    "empresa_id" => $row[0],
+                    "nombre" => $row[1],
+                    "telefono" => $row[2],
+                    "correo" => $row[3],
+                    "status" => $row[4]
+                ));
+            }
+//            foreach ($arreglo as $keys) {
+//                foreach ($keys as $key => $value) {
+//                    echo "key: " . $key .  " valor: " . $value . " ----\n";
+//                }
+//            }
+            return ["estado" => 1, "empresa_cliente" => $arreglo];
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Ha ocurrido un error probablemente no se encontro el dato");
+        }
+    }
+
+    private function listarHabilitado()
+    {
+        $usuarioBD = self::obtenerEmpresa(self::LIST_HABILITADO, NULL, NULL);
+
+        if ($usuarioBD != NULL) {
+            http_response_code(200);
+
+            $arreglo = array();
+            while ($row = $usuarioBD->fetch()) {
+                array_push($arreglo, array(
+                    "empresa_id" => $row[0],
+                    "nombre" => $row[1],
+                    "telefono" => $row[2],
+                    "correo" => $row[3],
+                    "status" => $row[4]
+                ));
+            }
+//            foreach ($arreglo as $keys) {
+//                foreach ($keys as $key => $value) {
+//                    echo "key: " . $key .  " valor: " . $value . " ----\n";
+//                }
+//            }
+            return ["estado" => 1, "empresa_cliente" => $arreglo];
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Ha ocurrido un error probablemente no se encontro el dato");
+        }
+    }
+
+    private function listarDeshabilitado()
+    {
+        $usuarioBD = self::obtenerEmpresa(self::LIST_DESHABILITADO, NULL, NULL);
 
         if ($usuarioBD != NULL) {
             http_response_code(200);
@@ -333,27 +400,10 @@ class empresa_cliente
         }
     }
 
-
-    private function obtenerEmpresa($id = NULL, $nombre = NULL)
+    private function obtenerEmpresa($tipo, $id = NULL, $nombre = NULL)
     {
-        if ($nombre == NULL) {
-
-
-            if ($id == NULL) {
-                $consulta = "SELECT " .
-                    self::ID_EMPRESA . "," .
-                    self::NOMBRE . "," .
-                    self::TELEFONO . "," .
-                    self::CORREO . ", " .
-                    self::STATUS .
-                    " FROM " . self::NOMBRE_TABLA;
-                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-                if ($sentencia->execute())
-                    //return $sentencia->fetch(PDO::FETCH_ASSOC);
-                    return $sentencia;
-                else
-                    return null;
-            } else {
+        switch ($tipo) {
+            case self::LIST_INDIVIDUAL:
                 $consulta = "SELECT " .
                     self::ID_EMPRESA . "," .
                     self::NOMBRE . "," .
@@ -370,24 +420,78 @@ class empresa_cliente
                     return $sentencia->fetch(PDO::FETCH_ASSOC);
                 else
                     return null;
-            }
-        } else {
-            $consulta = "SELECT " .
-                self::ID_EMPRESA . "," .
-                self::NOMBRE . "," .
-                self::TELEFONO . "," .
-                self::CORREO . ", " .
-                self::STATUS .
-                " FROM " . self::NOMBRE_TABLA .
-                " WHERE " . self::NOMBRE . "=?";
-            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                break;
+            case self::LIST_MULTIPLES:
+                $consulta = "SELECT " .
+                    self::ID_EMPRESA . "," .
+                    self::NOMBRE . "," .
+                    self::TELEFONO . "," .
+                    self::CORREO . ", " .
+                    self::STATUS .
+                    " FROM " . self::NOMBRE_TABLA;
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                if ($sentencia->execute())
+                    //return $sentencia->fetch(PDO::FETCH_ASSOC);
+                    return $sentencia;
+                else
+                    return null;
+                break;
+            case self::LIST_NOMBRE:
+                $consulta = "SELECT " .
+                    self::ID_EMPRESA . "," .
+                    self::NOMBRE . "," .
+                    self::TELEFONO . "," .
+                    self::CORREO . ", " .
+                    self::STATUS .
+                    " FROM " . self::NOMBRE_TABLA .
+                    " WHERE " . self::NOMBRE . "=?";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
-            $sentencia->bindParam(1, $nombre);
+                $sentencia->bindParam(1, $nombre);
 
-            if ($sentencia->execute())
-                return $sentencia->fetch(PDO::FETCH_ASSOC);
-            else
-                return null;
+                if ($sentencia->execute())
+                    return $sentencia->fetch(PDO::FETCH_ASSOC);
+                else
+                    return null;
+                break;
+            case self::LIST_HABILITADO:
+                $habilitado = 1;
+                $consulta = "SELECT " .
+                    self::ID_EMPRESA . "," .
+                    self::NOMBRE . "," .
+                    self::TELEFONO . "," .
+                    self::CORREO . ", " .
+                    self::STATUS .
+                    " FROM " . self::NOMBRE_TABLA .
+                    " WHERE " . self::STATUS . "=?";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $habilitado);
+
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
+            case self::LIST_DESHABILITADO:
+                $deshabilitado = 0;
+                $consulta = "SELECT " .
+                    self::ID_EMPRESA . "," .
+                    self::NOMBRE . "," .
+                    self::TELEFONO . "," .
+                    self::CORREO . ", " .
+                    self::STATUS .
+                    " FROM " . self::NOMBRE_TABLA .
+                    " WHERE " . self::STATUS ." IS NULL OR " .
+                    self::STATUS . "='' OR ".
+                    self::STATUS . "=? ";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $deshabilitado);
+
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+                break;
         }
     }
 }
