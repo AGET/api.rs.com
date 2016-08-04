@@ -7,9 +7,10 @@ class gps
     const NOMBRE_TABLA = "gps";
     const GPS_ID = "gps_id";
     const IMEI = "imei";
-    const DESCRIPCION = "descripcion";
     const NUMERO = "numero";
-    const ID_EMPRESA = "empresa_id";
+    const DESCRIPCION = "descripcion";
+    const AUTORASTREO = "autorastreo";
+    const ID_DEPARTAMENTO = "departamento_id";
 
     const TP_INDIVIDUAL = "uno";
     const TP_TODOS = "todos";
@@ -357,7 +358,8 @@ class gps
                     "imei" => $row[1],
                     "numero" => $row[2],
                     "descripcion" => $row[3],
-                    "empresa_id" => $row[4]
+                    "autorastreo" => $row[4],
+                    "departamento_id" => $row[5]
                 ));
             }
             return ["estado" => 1, "gps" => $arreglo];
@@ -569,7 +571,8 @@ class gps
                     self::IMEI . "," .
                     self::NUMERO . "," .
                     self::DESCRIPCION . "," .
-                    self::ID_EMPRESA .
+                    self::AUTORASTREO . "," .
+                    self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA .
                     " WHERE " . self::GPS_ID . "=?";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
@@ -587,9 +590,10 @@ class gps
                     self::IMEI . ", " .
                     self::NUMERO . ", " .
                     self::DESCRIPCION . ", " .
-                    self::ID_EMPRESA .
+                    self::AUTORASTREO . ", " .
+                    self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA .
-                    " WHERE " . self::ID_EMPRESA . " is null";
+                    " WHERE " . self::ID_DEPARTAMENTO . " is null or ''";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
                 if ($sentencia->execute()) {
                     return $sentencia;
@@ -602,7 +606,8 @@ class gps
                     self::IMEI . "," .
                     self::NUMERO . "," .
                     self::DESCRIPCION . "," .
-                    self::ID_EMPRESA .
+                    self::AUTORASTREO . ", " .
+                    self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA;
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
                 if ($sentencia->execute())
@@ -616,9 +621,10 @@ class gps
                     self::IMEI . "," .
                     self::NUMERO . "," .
                     self::DESCRIPCION . "," .
-                    self::ID_EMPRESA .
+                    self::AUTORASTREO . ", " .
+                    self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA .
-                    " WHERE " . self::ID_EMPRESA . "=?";
+                    " WHERE " . self::ID_DEPARTAMENTO . "=?";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
                 $sentencia->bindParam(1, $dato);
@@ -635,12 +641,13 @@ class gps
                     "g." . self::IMEI . "," .
                     "g." . self::NUMERO . "," .
                     "g." . self::DESCRIPCION . "," .
+                    "g." . self::AUTORASTREO . ", " .
                     "e.enlace_id," .
                     "e.usuario_id," .
                     "count(g.gps_id) as cantidadEnlaces" .
                     " FROM " . self::NOMBRE_TABLA . " g" .
                     " LEFT JOIN enlace e ON (g.gps_id = e.gps_id)" .
-                    " WHERE g." . self::ID_EMPRESA . "=?" .
+                    " WHERE g." . self::ID_DEPARTAMENTO . "=?" .
                     " GROUP BY g.gps_id" .
                     " HAVING cantidadEnlaces < 7 ";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);

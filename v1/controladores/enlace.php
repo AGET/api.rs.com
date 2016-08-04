@@ -175,9 +175,9 @@ class enlace
         $enlace = json_decode($cuerpo);
 
         if (!empty($enlace)) {
-            $ID_EMPRESA = $enlace->empresa_id;
+            $ID_DEPARTAMENTO = $enlace->departamento_id;
 
-            $enlaceBD = self::obtenerTelefonosEnlazados(self::TP_OBTENER_TELEFONOS_ENLAZADOS, $ID_EMPRESA);
+            $enlaceBD = self::obtenerTelefonosEnlazados(self::TP_OBTENER_TELEFONOS_ENLAZADOS, $ID_DEPARTAMENTO);
             if ($enlaceBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
@@ -211,7 +211,7 @@ class enlace
                     " FROM " . self::NOMBRE_TABLA . " e" .
                     " INNER JOIN gps g ON (e.gps_id = g.gps_id)" .
                     " INNER JOIN usuarios u ON ( e.usuario_id = u.usuario_id)" .
-                    " WHERE u.empresa_id=?";
+                    " WHERE u.departamento_id=?";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
                 $sentencia->bindParam(1, $dato);

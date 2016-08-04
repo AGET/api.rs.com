@@ -1,6 +1,7 @@
 <?php
 
 require 'controladores/empresa_cliente.php';
+require 'controladores/departamento.php';
 require 'controladores/usuarios.php';
 require 'controladores/coordenadas.php';
 require 'controladores/gps.php';
@@ -54,7 +55,7 @@ else
 
 // Obtener recurso
 $recurso = array_shift($peticion);
-$recursos_existentes = array('contactos', 'empresa_cliente','usuarios','coordenadas','gps','enlace');
+$recursos_existentes = array('contactos', 'empresa_cliente','departamento','usuarios','coordenadas','gps','enlace');
 
 // Comprobar si existe el recurso
 if (!in_array($recurso, $recursos_existentes)) {
