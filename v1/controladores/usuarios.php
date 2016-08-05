@@ -13,7 +13,7 @@ class usuarios
     const CORREO = "correo";
     const USUARIO = "usuario";
     const CONTRASE_NA = "contrase_na";
-    const ID_EMPRESA = "empresa_id";
+    const ID_DEPARTAMENTO = "departamento_id";
     const CLAVE_API = "clave_api";
 
     const ESTADO_CREACION_EXITOSA = 1;
@@ -27,7 +27,7 @@ class usuarios
 
     const INDIVIDUAL = "uno";
     const MULTIPLES = "varios";
-    const USER_EN_EMPRESA = "de_empresa";
+    const USER_EN_DEPARTAMENTO = "de_departamento";
     const GPS_DE_USER = "gps_de_usuarios";
 
     const CODIGO_EXITO = 1;
@@ -47,8 +47,8 @@ class usuarios
             return self::listarUnoId();
         } else if ($peticion[0] == 'listarVarios') {
             return self::listarVarios();
-        } else if ($peticion[0] == 'listarUsuariosDeEmpresa') {
-            return self::listarUsuariosDeEmpresa();
+        } else if ($peticion[0] == 'listarUsuariosDeDepartamento') {
+            return self::listarUsuariosDeDepartamento();
         }  else if ($peticion[0] == 'listarGpsDeUsuario') {
             return self::listarGpsDeUsuario();
         } else {
@@ -57,7 +57,7 @@ class usuarios
     }
 
     /**
-     * Crea un nuevo empresa en la base de datos
+     * Crea un nuevo departamento en la base de datos
      */
     private function registrar()
     {
@@ -85,14 +85,10 @@ class usuarios
 
     public static function put($peticion)
     {
-        //$idEmpresa = empresa_cliente::autorizar();
-
-        //$peticion[0] : es lo indicado e la direccion :http://localhost/api.rs.com/v1/usuarios/2 = 2
         if (!empty($peticion[0])) {
             $body = file_get_contents('php://input');
             $usuario = json_decode($body);
-
-            //if (self::actualizar($idEmpresa, $empresa, $peticion[0]) > 0) {
+            
             if (self::actualizar($usuario, $peticion[0]) > 0) {
                 http_response_code(200);
                 return [
@@ -143,7 +139,7 @@ class usuarios
         $telefono = $datosUsuario->telefono;
         $correo = $datosUsuario->correo;
         $usuario = $datosUsuario->usuario;
-        $empresa_id = $datosUsuario->empresa_id;
+        $departamento_id = $datosUsuario->departamento_id;
 
         $contrase_na = $datosUsuario->contrase_na;
         $contrasenaEncriptada = self::encriptarContrasena($contrase_na);
@@ -160,7 +156,7 @@ class usuarios
                 self::CORREO . "," .
                 self::USUARIO . "," .
                 self::CONTRASE_NA . "," .
-                self::ID_EMPRESA . ")" .
+                self::ID_DEPARTAMENTO . ")" .
                 " VALUES(?,?,?,?,?,?,?,?)";
 
 
@@ -173,7 +169,7 @@ class usuarios
             $sentencia->bindParam(5, $correo);
             $sentencia->bindParam(6, $usuario);
             $sentencia->bindParam(7, $contrasenaEncriptada);
-            $sentencia->bindParam(8, $empresa_id);
+            $sentencia->bindParam(8, $departamento_id);
 
             $resultado = $sentencia->execute();
 
@@ -211,7 +207,7 @@ class usuarios
                 $respuesta["correo"] = $usuarioBD["correo"];
                 $respuesta["usuario"] = $usuarioBD["usuario"];
                 $respuesta["contrase_na"] = $usuarioBD["contrase_na"];
-                $respuesta["empresa_id"] = $usuarioBD["empresa_id"];
+                $respuesta["departamento_id"] = $usuarioBD["departamento_id"];
 
                 return ["estado" => 1, "usuario" => $respuesta];
             } else {
@@ -245,7 +241,7 @@ class usuarios
                     "correo" => $row[5],
                     "usuario" => $row[6],
                     "contrase_na" => $row[7],
-                    "empresa_id" => $row[8]
+                    "departamento_id" => $row[8]
                 ));
             }
 //            foreach ($arreglo as $keys) {
@@ -260,14 +256,14 @@ class usuarios
         }
     }
 
-    private function listarUsuariosDeEmpresa()
+    private function listarUsuariosDeDepartamento()
     {
         $cuerpo = file_get_contents('php://input');
         $usuario = json_decode($cuerpo);
 
         if (!empty($usuario)) {
-            $ID_EMPRESA_DE_USUARIOS = $usuario->empresa_id;
-            $usuarioBD = self::obtenerUsuario(self::USER_EN_EMPRESA, $ID_EMPRESA_DE_USUARIOS);
+            $ID_DEPARTAMENTO_DE_USUARIOS = $usuario->departamento_id;
+            $usuarioBD = self::obtenerUsuario(self::USER_EN_DEPARTAMENTO, $ID_DEPARTAMENTO_DE_USUARIOS);
             if ($usuarioBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
@@ -281,7 +277,7 @@ class usuarios
                         "correo" => $row[5],
                         "usuario" => $row[6],
                         "contrase_na" => $row[7],
-                        "empresa_id" => $row[8]
+                        "departamento_id" => $row[8]
                     ));
                 }
                 return ["estado" => 1, "usuario" => $arreglo];
@@ -291,7 +287,7 @@ class usuarios
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
-                "Se desconoce la empresa");
+                "Se desconoce el departamento");
         }
     }
 
@@ -314,7 +310,7 @@ class usuarios
                             "imei" => $row[3],
                             "numero" => $row[4],
                             "descripcion" => $row[5],
-                            "empresa_id" => $row[6]
+                            "departamento_id" => $row[6]
                     ));
                 }
                 return ["estado" => 1, "usuario" => $arreglo];
@@ -324,11 +320,10 @@ class usuarios
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
-                "Se desconoce la empresa");
+                "Se desconoce el departamento");
         }
     }
-
-    //private function actualizar($idEmpresa, $empresa, $idContacto)
+    
     private function actualizar($usuario, $idUsuario)
     {
         try {
@@ -506,27 +501,7 @@ class usuarios
     }
     */
 
-
-    private function obtenerEmpresaPorCorreo($correo)
-    {
-        $comando = "SELECT " .
-            self::NOMBRE . "," .
-            self::CONTRASENA . "," .
-            self::CORREO . "," .
-            self::CLAVE_API .
-            " FROM " . self::NOMBRE_TABLA .
-            " WHERE " . self::CORREO . "=?";
-
-        $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
-
-        $sentencia->bindParam(1, $correo);
-
-        if ($sentencia->execute())
-            return $sentencia->fetch(PDO::FETCH_ASSOC);
-        else
-            return null;
-    }
-
+    
 
     private function obtenerUsuario($tipo, $dato = NULL)
     {
@@ -542,7 +517,7 @@ class usuarios
                     self::CORREO . ", " .
                     self::USUARIO . ", " .
                     self::CONTRASE_NA . ", " .
-                    self::ID_EMPRESA .
+                    self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA .
                     " WHERE " . self::ID_USUARIO . "=?";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
@@ -565,7 +540,7 @@ class usuarios
                     self::CORREO . ", " .
                     self::USUARIO . ", " .
                     self::CONTRASE_NA . ", " .
-                    self::ID_EMPRESA .
+                    self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA;
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
                 if ($sentencia->execute())
@@ -573,8 +548,8 @@ class usuarios
                 else
                     return null;
                 break;
-            case self::USER_EN_EMPRESA:
-                //de empresa
+            case self::USER_EN_DEPARTAMENTO:
+                //de departamento
                 $consulta = "SELECT " .
                     self::ID_USUARIO . "," .
                     self::NOMBRE . "," .
@@ -584,9 +559,9 @@ class usuarios
                     self::CORREO . ", " .
                     self::USUARIO . ", " .
                     self::CONTRASE_NA . ", " .
-                    self::ID_EMPRESA .
+                    self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA .
-                    " WHERE " . self::ID_EMPRESA . "=?";
+                    " WHERE " . self::ID_DEPARTAMENTO . "=?";
 
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
                 $sentencia->bindParam(1, $dato);
@@ -605,7 +580,7 @@ class usuarios
                     "g.imei," .
                     "g.numero," .
                     "g.descripcion," .
-                    "g.empresa_id" .
+                    "g.departamento_id" .
                     " FROM " . self::NOMBRE_TABLA . " u" .
                     " INNER JOIN enlace e ON (u.usuario_id = e.usuario_id)" .
                     " INNER JOIN gps g ON (e.gps_imei = g.imei)" .
