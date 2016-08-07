@@ -142,7 +142,9 @@ class usuarios
         $departamento_id = $datosUsuario->departamento_id;
 
         $contrase_na = $datosUsuario->contrase_na;
-        $contrasenaEncriptada = self::encriptarContrasena($contrase_na);
+        //$contrasenaEncriptada = self::encriptarContrasena($contrase_na);
+        //$contrasenaEncriptada = self::encriptar($contrase_na);
+
 
         try {
 
@@ -168,7 +170,7 @@ class usuarios
             $sentencia->bindParam(4, $telefono);
             $sentencia->bindParam(5, $correo);
             $sentencia->bindParam(6, $usuario);
-            $sentencia->bindParam(7, $contrasenaEncriptada);
+            $sentencia->bindParam(7, $contrase_na);
             $sentencia->bindParam(8, $departamento_id);
 
             $resultado = $sentencia->execute();
@@ -206,10 +208,11 @@ class usuarios
                 $respuesta["telefono"] = $usuarioBD["telefono"];
                 $respuesta["correo"] = $usuarioBD["correo"];
                 $respuesta["usuario"] = $usuarioBD["usuario"];
+
                 $respuesta["contrase_na"] = $usuarioBD["contrase_na"];
                 $respuesta["departamento_id"] = $usuarioBD["departamento_id"];
 
-                return ["estado" => 1, "usuario" => $respuesta];
+                return ["estado" => 1, "usuarios" => $respuesta];
             } else {
                 throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                     "Ha ocurrido un error probablemente no se encontro el dato");
@@ -249,7 +252,7 @@ class usuarios
 //                    echo "key: " . $key .  " valor: " . $value . " ----\n";
 //                }
 //            }
-            return ["estado" => 1, "usuario" => $arreglo];
+            return ["estado" => 1, "usuarios" => $arreglo];
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                 "Ha ocurrido un error probablemente no se encontro el dato");
@@ -280,7 +283,7 @@ class usuarios
                         "departamento_id" => $row[8]
                     ));
                 }
-                return ["estado" => 1, "usuario" => $arreglo];
+                return ["estado" => 1, "usuarios" => $arreglo];
             } else {
                 throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                     "Ha ocurrido un error probablemente no se encontro el dato");
@@ -313,7 +316,7 @@ class usuarios
                             "departamento_id" => $row[6]
                     ));
                 }
-                return ["estado" => 1, "usuario" => $arreglo];
+                return ["estado" => 1, "usuarios" => $arreglo];
             } else {
                 throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                     "Ha ocurrido un error probablemente no se encontro el dato");
@@ -347,11 +350,12 @@ class usuarios
             $sentencia->bindParam(4, $telefono);
             $sentencia->bindParam(5, $correo);
             $sentencia->bindParam(6, $usuariouser);
-            $sentencia->bindParam(7, $contrasenaEncriptada);
+            $sentencia->bindParam(7, $contrase_na);
             $sentencia->bindParam(8, $idUsuario);
 
             $contrase_na = $usuario->contrase_na;
-            $contrasenaEncriptada = self::encriptarContrasena($contrase_na);
+            //$contrasenaEncriptada = self::encriptarContrasena($contrase_na);
+            //$contrasenaEncriptada = self::desencriptar($contrase_na);
 
 
             $nombre = $usuario->nombre;
@@ -411,6 +415,31 @@ class usuarios
             return $sentencia->fetch(PDO::FETCH_ASSOC);
         else
             return null;
+    }
+
+    private function encriptar($string){
+        $key = "kay";
+        $result = '';
+        for($i=0; $i<strlen($string); $i++) {
+            $char = substr($string, $i, 1);
+            $keychar = substr($key, ($i % strlen($key))-1, 1);
+            $char = chr(ord($char)+ord($keychar));
+            $result.=$char;
+        }
+        return base64_encode($result);
+    }
+
+    private function desencriptar($string) {
+        $key = "kay";
+        $result = '';
+        $string = base64_decode($string);
+        for($i=0; $i<strlen($string); $i++) {
+            $char = substr($string, $i, 1);
+            $keychar = substr($key, ($i % strlen($key))-1, 1);
+            $char = chr(ord($char)-ord($keychar));
+            $result.=$char;
+        }
+        return $result;
     }
 
 

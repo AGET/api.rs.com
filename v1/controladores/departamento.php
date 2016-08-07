@@ -80,9 +80,9 @@ class departamento
     {
         if (!empty($peticion[0])) {
             $body = file_get_contents('php://input');
-            $empresa = json_decode($body);
+            $departamento = json_decode($body);
 
-            if (self::actualizar($empresa, $peticion[0]) > 0) {
+            if (self::actualizar($departamento , $peticion[0]) > 0) {
                 http_response_code(200);
                 return [
                     "estado" => self::CODIGO_EXITO,
@@ -90,7 +90,7 @@ class departamento
                 ];
             } else {
                 throw new ExcepcionApi(self::ESTADO_NO_ENCONTRADO,
-                    "La empresa a la que intentas acceder no existe", 404);
+                    "El departamento a la que intentas acceder no existe", 404);
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_ERROR_PARAMETROS, "Falta id", 422);
