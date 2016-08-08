@@ -319,9 +319,12 @@ class gps
                         }
                         $contadordepa++;
                     }
+                    $arregloDepartamento = array_values($arregloDepartamento );
                     return ["estado" => 1, "gps"=>$arregloDepartamento];
+                }else{
+                    return ["estado" => 1, "gps" => $arregloDepartamento];
                 }
-                return ["estado" => 1, "gps" => $arregloDepartamento];
+
             } else {
                 throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                     "Ha ocurrido un error probablemente no se encontro el dato");
