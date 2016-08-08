@@ -48,15 +48,17 @@ class gps
             return self::listarVarios();
         } else if ($peticion[0] == 'listarLibres') {
             return self::listarLibres();
-        } else if ($peticion[0] == 'listarGpsDeEmpresa') {
-            return self::listarGpsDeEmpresa();
+        } else if ($peticion[0] == 'listarGpsDeDepartamento') {
+            return self::listarGpsDeDepartamento();
         } else if ($peticion[0] == 'listarGpsDeEmpresaDisponibles') {
             return self::listarGpsDeEmpresaDisponibles();
         } else if ($peticion[0] == 'listarGpsUsuarioEnlazados') {
             return self::listarGpsUsuarioEnlazados();
         } else if ($peticion[0] == 'sustituirGps') {
             return self::sustituirGps();
-        } else {
+        } else if($peticion[0] == 'listarGpsDeDepartamentoAEnlazarUsuario'){
+            return self::listarGpsDeDepartamentoAEnlazarUsuario();
+        }else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
 
@@ -234,15 +236,15 @@ class gps
         }
     }
 
-    private function listarGpsDeEmpresa()
+    private function listarGpsDeDepartamento()
     {
         $cuerpo = file_get_contents('php://input');
         $gps = json_decode($cuerpo);
 
         if (!empty($gps)) {
-            $ID_EMPRESA_DE_GPS = $gps->empresa_id;
+            $ID_DEPARTAMENTO_DE_GPS = $gps->departamento_id;
 
-            $gpsBD = self::obtenerGps(self::TP_ENLAZADOS, $ID_EMPRESA_DE_GPS);
+            $gpsBD = self::obtenerGps(self::TP_ENLAZADOS, $ID_DEPARTAMENTO_DE_GPS);
             if ($gpsBD != NULL) {
                 http_response_code(200);
                 $arreglo = array();
@@ -252,10 +254,74 @@ class gps
                         "imei" => $row[1],
                         "numero" => $row[2],
                         "descripcion" => $row[3],
-                        "empresa_id" => $row[4]
+                        "autorastreo" => $row[4],
+                        "departamento_id" => $row[4]
                     ));
                 }
                 return ["estado" => 1, "gps" => $arreglo];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "Ha ocurrido un error probablemente no se encontro el dato");
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Se desconoce la empresa del gps");
+        }
+    }
+
+    private function listarGpsDeDepartamentoAEnlazarUsuario()
+    {
+        $cuerpo = file_get_contents('php://input');
+        $gps = json_decode($cuerpo);
+
+        if (!empty($gps)) {
+            $ID_DEPARTAMENTO_DE_GPS = $gps->departamento_id;
+
+            $USUARIO_ID = $gps->usuario_id;
+
+            $gpsBD_departamento = self::obtenerGps(self::TP_ENLAZADOS, $ID_DEPARTAMENTO_DE_GPS);
+
+            $gpsBD_enlaces = self::obtenerEnlaces($USUARIO_ID);
+
+            if ($gpsBD_departamento != NULL) {
+                http_response_code(200);
+                $arregloDepartamento = array();
+                while ($row = $gpsBD_departamento->fetch()) {
+                    array_push($arregloDepartamento, array(
+                        "gps_id" => $row[0],
+                        "imei" => $row[1],
+                        "numero" => $row[2],
+                        "descripcion" => $row[3],
+                        "autorastreo" => $row[4],
+                        "departamento_id" => $row[5]
+                    ));
+                }
+                if ($gpsBD_departamento != NULL) {
+                    $arregloEnlace = array();
+                    $arregloAretornar = array();
+                    while ($row = $gpsBD_enlaces->fetch()) {
+                         array_push($arregloEnlace, array(
+                            "enlace_id" => $row[0],
+                            "usuario_id" => $row[1],
+                            "gps_id" => $row[2]
+                        ));
+                    }
+                    $arreglo = $arregloDepartamento;
+                    $repetido=0;
+                    $contadordepa=0;
+                    foreach ($arregloDepartamento as $dep) {
+                        $contadorenlace=0;
+                        foreach ($arregloEnlace as $enlace){
+                            if($enlace["gps_id"] == $dep["gps_id"]){
+                             unset($arregloDepartamento[$contadordepa]);
+                            }
+                            $contadorenlace++;
+                        }
+                        $contadordepa++;
+                    }
+                    return ["estado" => 1, "gps"=>$arregloDepartamento];
+                }
+                return ["estado" => 1, "gps" => $arregloDepartamento];
             } else {
                 throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                     "Ha ocurrido un error probablemente no se encontro el dato");
@@ -689,5 +755,23 @@ class gps
                     return null;
                 break;
         }
+    }
+
+     private function obtenerEnlaces($idUsuario)
+    {   
+        $consulta =
+            "SELECT " .
+            "enlace_id, " .
+            "usuario_id, " .
+            "gps_id" .
+            " FROM " . "enlace" .
+            " WHERE " . "usuario_id" . "=?";
+
+        $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+        $sentencia->bindParam(1, $idUsuario);
+        if ($sentencia->execute())
+            return $sentencia;
+        else
+            return null;
     }
 }

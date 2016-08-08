@@ -208,7 +208,6 @@ class usuarios
                 $respuesta["telefono"] = $usuarioBD["telefono"];
                 $respuesta["correo"] = $usuarioBD["correo"];
                 $respuesta["usuario"] = $usuarioBD["usuario"];
-
                 $respuesta["contrase_na"] = $usuarioBD["contrase_na"];
                 $respuesta["departamento_id"] = $usuarioBD["departamento_id"];
 
@@ -290,7 +289,7 @@ class usuarios
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
-                "Se desconoce el departamento");
+                "Se desconoce el usuario");
         }
     }
 
@@ -612,7 +611,7 @@ class usuarios
                     "g.departamento_id" .
                     " FROM " . self::NOMBRE_TABLA . " u" .
                     " INNER JOIN enlace e ON (u.usuario_id = e.usuario_id)" .
-                    " INNER JOIN gps g ON (e.gps_imei = g.imei)" .
+                    " INNER JOIN gps g ON (g.gps_id = e.gps_id )" .
                     " WHERE u." . self::ID_USUARIO . "=?";
 
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);

@@ -25,6 +25,7 @@ class departamento
     const LIST_HABILITADO = "habiltados";
     const LIST_DESHABILITADO = "deshabilitados";
     const LIST_NOMBRE = "nombre";
+    const LIST_DE_EMPRESA = "Dep_de_empresa";
 
     const CODIGO_EXITO = 1;
     const ESTADO_EXITO = 1;
@@ -41,6 +42,8 @@ class departamento
             return self::listarUnoId();
         } else if ($peticion[0] == 'listarVarios') {
             return self::listarVarios();
+        }else if ($peticion[0] == 'listarDeEmpresa') {
+            return self::listarDeEmpresa();
         } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
@@ -228,6 +231,47 @@ class departamento
         }
     }
 
+     private function listarDeEmpresa()
+    {
+        $body = file_get_contents('php://input');
+        $departamento = json_decode($body);
+
+        if (isset($departamento)) {
+
+            $empresa_id = $departamento->empresa_id;
+
+            if ($empresa_id != NULL) {
+
+                $usuarioBD = self::obtenerDepartamento(self::LIST_DE_EMPRESA, $empresa_id);
+
+                if ($usuarioBD != NULL) {
+                    http_response_code(200);
+
+                    $arreglo = array();
+                    while ($row = $usuarioBD->fetch()) {
+                        array_push($arreglo, array(
+                            "departamento_id" => $row[0],
+                            "nombre" => $row[1],
+                            "telefono" => $row[2],
+                            "correo" => $row[3],
+                            "direccion" => $row[4]
+                        ));
+                    }
+                    return ["estado" => 1, "departamento" => $arreglo];
+                } else {
+                    throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                        "Ha ocurrido un error probablemente no se encontro el dato");
+                }
+         } else {
+                throw new ExcepcionApi(self::ESTADO_NO_ENCONTRADO,
+                    "Especifique el indice ");
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_NO_ENCONTRADO,
+                "Nomingreso el indice");
+        }
+    }
+
 
 
     private function actualizar($departamento, $idDepartamento)
@@ -315,6 +359,25 @@ class departamento
                     self::DIRECCION .
                     " FROM " . self::NOMBRE_TABLA;
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                if ($sentencia->execute())
+                    //return $sentencia->fetch(PDO::FETCH_ASSOC);
+                    return $sentencia;
+                else
+                    return null;
+                break;
+            case self::LIST_DE_EMPRESA:
+                $consulta = "SELECT " .
+                    self::ID_DEPARTAMENTO . "," .
+                    self::NOMBRE . "," .
+                    self::TELEFONO . "," .
+                    self::CORREO . ", " .
+                    self::DIRECCION .
+                    " FROM " . self::NOMBRE_TABLA.
+                    " WHERE " . self::EMPRESA_ID . "=?";
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+
+                $sentencia->bindParam(1, $id);
+
                 if ($sentencia->execute())
                     //return $sentencia->fetch(PDO::FETCH_ASSOC);
                     return $sentencia;
