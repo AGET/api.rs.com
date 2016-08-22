@@ -11,10 +11,20 @@ class usuarios
     const APMATERNO = "ap_materno";
     const TELEFONO = "telefono";
     const CORREO = "correo";
-    const USUARIO = "usuario";
+    //const USUARIO = "usuario";
     const CONTRASE_NA = "contrase_na";
     const ID_DEPARTAMENTO = "departamento_id";
     const CLAVE_API = "clave_api";
+
+    const NOMBRE_TABLA_EMPRESA = "empresa_cliente";
+    const EMPRESA_ID = "empresa_id";
+    const NOMBRE_EMPRESA = "nombre";
+    const STATUS_EMPRESA = "status";
+    
+    const NOMBRE_TABLA_DEPARTAMENTO = "departamento";
+    const DEPARTAMENTO_ID = "departamento_id";
+    const NOMBRE_DEPARTAMENTO = "nombre";
+    
 
     const ESTADO_CREACION_EXITOSA = 1;
     const ESTADO_CREACION_FALLIDA = 2;
@@ -29,6 +39,7 @@ class usuarios
     const MULTIPLES = "varios";
     const USER_EN_DEPARTAMENTO = "de_departamento";
     const GPS_DE_USER = "gps_de_usuarios";
+    const COORDENADAS_GPS_DE_USER_FECHA = "coordenadas_gps_de_usuarios_por_fecha";
 
     const CODIGO_EXITO = 1;
     const ESTADO_EXITO = 1;
@@ -36,13 +47,17 @@ class usuarios
     const ESTADO_ERROR_PARAMETROS = 4;
     const ESTADO_NO_ENCONTRADO = 5;
 
+    const ESTADO_LOGIN_CORRECTO = "CORRECTO";
+    const ESTADO_LOGIN_ERROR_CLAVE= "CLAVE_INCORRECTA";   
+    const ESTADO_LOGIN_ERROR_USUARIO = "USUARIO_INCORRECTO";       
+
 
     public static function post($peticion)
     {
         if ($peticion[0] == 'registro') {
             return self::registrar();
         } else if ($peticion[0] == 'login') {
-            //return self::loguear();
+            return self::login();
         } else if ($peticion[0] == 'listarUno_Id') {
             return self::listarUnoId();
         } else if ($peticion[0] == 'listarVarios') {
@@ -51,6 +66,8 @@ class usuarios
             return self::listarUsuariosDeDepartamento();
         }  else if ($peticion[0] == 'listarGpsDeUsuario') {
             return self::listarGpsDeUsuario();
+        }   else if ($peticion[0] == 'listarCoordenadasDeTodosSusGpsPorFecha') {
+            return self::listarCoordenadasDeTodosSusGpsPorFecha();
         } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
@@ -138,7 +155,7 @@ class usuarios
         $ap_materno = $datosUsuario->ap_materno;
         $telefono = $datosUsuario->telefono;
         $correo = $datosUsuario->correo;
-        $usuario = $datosUsuario->usuario;
+        //$usuario = $datosUsuario->usuario;
         $departamento_id = $datosUsuario->departamento_id;
 
         $contrase_na = $datosUsuario->contrase_na;
@@ -156,7 +173,7 @@ class usuarios
                 self::APMATERNO . "," .
                 self::TELEFONO . "," .
                 self::CORREO . "," .
-                self::USUARIO . "," .
+              //  self::USUARIO . "," .
                 self::CONTRASE_NA . "," .
                 self::ID_DEPARTAMENTO . ")" .
                 " VALUES(?,?,?,?,?,?,?,?)";
@@ -169,7 +186,7 @@ class usuarios
             $sentencia->bindParam(3, $ap_materno);
             $sentencia->bindParam(4, $telefono);
             $sentencia->bindParam(5, $correo);
-            $sentencia->bindParam(6, $usuario);
+            //$sentencia->bindParam(6, $usuario);
             $sentencia->bindParam(7, $contrase_na);
             $sentencia->bindParam(8, $departamento_id);
 
@@ -207,7 +224,7 @@ class usuarios
                 $respuesta["ap_materno"] = $usuarioBD["ap_materno"];
                 $respuesta["telefono"] = $usuarioBD["telefono"];
                 $respuesta["correo"] = $usuarioBD["correo"];
-                $respuesta["usuario"] = $usuarioBD["usuario"];
+               // $respuesta["usuario"] = $usuarioBD["usuario"];
                 $respuesta["contrase_na"] = $usuarioBD["contrase_na"];
                 $respuesta["departamento_id"] = $usuarioBD["departamento_id"];
 
@@ -241,9 +258,9 @@ class usuarios
                     "ap_materno" => $row[3],
                     "telefono" => $row[4],
                     "correo" => $row[5],
-                    "usuario" => $row[6],
-                    "contrase_na" => $row[7],
-                    "departamento_id" => $row[8]
+                   // "usuario" => $row[6],
+                    "contrase_na" => $row[6],
+                    "departamento_id" => $row[7]
                 ));
             }
 //            foreach ($arreglo as $keys) {
@@ -277,9 +294,9 @@ class usuarios
                         "ap_materno" => $row[3],
                         "telefono" => $row[4],
                         "correo" => $row[5],
-                        "usuario" => $row[6],
-                        "contrase_na" => $row[7],
-                        "departamento_id" => $row[8]
+                       // "usuario" => $row[6],
+                        "contrase_na" => $row[6],
+                        "departamento_id" => $row[7]
                     ));
                 }
                 return ["estado" => 1, "usuarios" => $arreglo];
@@ -309,10 +326,11 @@ class usuarios
                             "enlace_id" => $row[0],
                             "usuario_id" => $row[1],
                             "nombre" => $row[2],
-                            "imei" => $row[3],
-                            "numero" => $row[4],
-                            "descripcion" => $row[5],
-                            "departamento_id" => $row[6]
+                            "gps_id" => $row[3],
+                            "imei" => $row[4],
+                            "numero" => $row[5],
+                            "descripcion" => $row[6],
+                            "departamento_id" => $row[7]
                     ));
                 }
                 return ["estado" => 1, "usuarios" => $arreglo];
@@ -325,6 +343,47 @@ class usuarios
                 "Se desconoce el departamento");
         }
     }
+
+private function listarCoordenadasDeTodosSusGpsPorFecha()
+    {
+        $cuerpo = file_get_contents('php://input');
+        $usuario = json_decode($cuerpo);
+
+        if (!empty($usuario)) {
+            $ID_USUARIO = $usuario->usuario_id;
+            $FECHA_INICIAL = $usuario->fecha_inicial;
+            $FECHA_FINAL = $usuario->fecha_final;
+            $usuarioBD = self::obtenerCoordenadasUsuario(self::COORDENADAS_GPS_DE_USER_FECHA, $ID_USUARIO, $FECHA_INICIAL, $FECHA_FINAL);
+            if ($usuarioBD != NULL) {
+                http_response_code(200);
+                $arreglo = array();
+                while ($row = $usuarioBD->fetch()) {
+                        array_push($arreglo, array(
+                            "enlace_id" => $row[0],
+                            "usuario_id" => $row[1],
+                            "nombre" => $row[2],
+                            "detalle_id" => $row[3],
+                            "fecha" => $row[4],
+                            "coordenadas_id" => $row[5],
+                            "longitud" => $row[6],
+                            "latitud" => $row[7],
+                            "gps_id" => $row[8],
+                            "imei" => $row[9],
+                            "numero" => $row[10],
+                            "descripcion" => $row[11]
+                    ));
+                }
+                return ["estado" => 1, "usuarios" => $arreglo];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    "Ha ocurrido un error probablemente no se encontro el dato");
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Se desconoce el enlace");
+        }
+    }
+    
     
     private function actualizar($usuario, $idUsuario)
     {
@@ -335,7 +394,7 @@ class usuarios
                 self::APMATERNO . "=?," .
                 self::TELEFONO . "=?," .
                 self::CORREO . "=?," .
-                self::USUARIO . "=?," .
+                //self::USUARIO . "=?," .
                 self::CONTRASE_NA . "=?" .
                 " WHERE " . self::ID_USUARIO . "=?";
 
@@ -348,7 +407,7 @@ class usuarios
             $sentencia->bindParam(3, $ap_materno);
             $sentencia->bindParam(4, $telefono);
             $sentencia->bindParam(5, $correo);
-            $sentencia->bindParam(6, $usuariouser);
+            //$sentencia->bindParam(6, $usuariouser);
             $sentencia->bindParam(7, $contrase_na);
             $sentencia->bindParam(8, $idUsuario);
 
@@ -362,7 +421,7 @@ class usuarios
             $ap_materno = $usuario->ap_materno;
             $telefono = $usuario->telefono;
             $correo = $usuario->correo;
-            $usuariouser = $usuario->usuario;
+            //$usuariouser = $usuario->usuario;
 
 
             // Ejecutar la sentencia
@@ -461,7 +520,8 @@ class usuarios
 
     /*
      *Loguear
-    private function loguear()
+     */
+    private function login()
     {
         $respuesta = array();
 
@@ -469,58 +529,85 @@ class usuarios
         $empresa = json_decode($body);
 
         $correo = $empresa->correo;
-        $contrasena = $empresa->contrasena;
+        $contrasena = $empresa->contrase_na;
 
+        $resultadoLogin = self::autenticar($correo, $contrasena);
+        if ($resultadoLogin != self::ESTADO_LOGIN_ERROR_CLAVE && $resultadoLogin != self::ESTADO_LOGIN_ERROR_USUARIO ) {
+            $retornar["usuario_id"] = $resultadoLogin["usuario_id"];
+            $retornar["nombre"] = $resultadoLogin["nombre"];
+            $retornar["ap_paterno"] = $resultadoLogin["ap_paterno"];
+            $retornar["ap_materno"] = $resultadoLogin["ap_materno"];
+            $retornar["telefono"] = $resultadoLogin["telefono"];
+            $retornar["correo"] = $resultadoLogin["correo"];
+            //$retornar["usuario"] = $resultadoLogin["usuario"];
+            $retornar["contrase_na"] = $resultadoLogin["contrase_na"];
 
-        if (self::autenticar($correo, $contrasena)) {
-            $usuarioBD = self::obtenerEmpresaPorCorreo($correo);
+            $infDepartamento = self::obtenerDepartamentoUsuario($resultadoLogin['departamento_id']);
 
-            if ($usuarioBD != NULL) {
-                http_response_code(200);
-                $respuesta["nombre"] = $usuarioBD["nombre"];
-                $respuesta["correo"] = $usuarioBD["correo"];
-                $respuesta["claveApi"] = $usuarioBD["claveApi"];
-                return ["estado" => 1, "usuario" => $respuesta];
+            if ($infDepartamento != NULL) {
+                $retornar["departamento_id"] = $infDepartamento["departamento_id"];
+                $retornar["nombre_departamento"] = $infDepartamento["nombre"];
+
+                $infEmpresa = self::obtenerEmpresaUsuario($infDepartamento["empresa_id"]);
+                //$resultadoLogin["empresa_id"] = $infDepartamento["empresa_id"];
+                //$resultadoLogin["status"] = $infDepartamento["status"];
+                if($infEmpresa != NULL && $infEmpresa["status"] != "0"){
+                    http_response_code(200);
+                    $retornar["empresa_id"] = $infEmpresa["empresa_id"];
+                    $retornar["nombre_empresa"] = $infEmpresa["nombre"];
+                    $retornar["status"] = $infEmpresa["status"];
+                    return ["estado" => 1, "usuarios" => $retornar];
+                }else{
+                    // throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                    // "La empresa no esta habilitada");
+                    $error["mensaje"] =  "La empresa no esta habilitada";
+                    return ["estado" => 5, "usuarios" => $error];
+                }
             } else {
-                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
-                    "Ha ocurrido un error");
+              throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
+                "Ha ocurrido un error");
             }
-        } else {
+        } else if ( $resultadoLogin == self::ESTADO_LOGIN_ERROR_CLAVE ){
+            // throw new ExcepcionApi(self::ESTADO_PARAMETROS_INCORRECTOS,
+            //     utf8_encode("Datos incorrectos"));
+            $error["mensaje"] =  "Datos incorrectos";
+            return ["estado" => 5, "usuarios" => $error];
+        } else if ( $resultadoLogin == self::ESTADO_LOGIN_ERROR_USUARIO ){
             throw new ExcepcionApi(self::ESTADO_PARAMETROS_INCORRECTOS,
-                utf8_encode("Correo o contrase_na invalidos"));
+                utf8_encode("Usuario incorrecto"));
         }
     }
-    */
+    
 
-
-    /*
-    private function autenticar($correo, $contrasena)
+    private function autenticar($correo, $contrase_na)
     {
-        $comando = "SELECT contrasena FROM " . self::NOMBRE_TABLA .
-            " WHERE " . self::CORREO . "=?";
+        $comando = "SELECT * FROM " . self::NOMBRE_TABLA .
+            " WHERE " . self::CORREO . "=? AND ". self::CONTRASE_NA . "=?";
 
         try {
 
             $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
 
             $sentencia->bindParam(1, $correo);
+            $sentencia->bindParam(2, $contrase_na);
 
             $sentencia->execute();
 
             if ($sentencia) {
                 $resultado = $sentencia->fetch();
-
-                if (self::validarContrasena($contrasena, $resultado['contrasena'])) {
-                    return true;
-                } else return false;
+                if ($contrase_na == $resultado['contrase_na']) {
+                    return $resultado;
+                //} else return false;
+                } else return self::ESTADO_LOGIN_ERROR_CLAVE;
             } else {
-                return false;
+                //return false;
+                return self::ESTADO_LOGIN_ERROR_USUARIO;
             }
         } catch (PDOException $e) {
             throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
         }
     }
-    */
+    
 
     /*
     private function validarContrasena($contrasenaPlana, $contrasenaHash)
@@ -543,7 +630,7 @@ class usuarios
                     self::APMATERNO . ", " .
                     self::TELEFONO . ", " .
                     self::CORREO . ", " .
-                    self::USUARIO . ", " .
+                    //self::USUARIO . ", " .
                     self::CONTRASE_NA . ", " .
                     self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA .
@@ -566,7 +653,7 @@ class usuarios
                     self::APMATERNO . ", " .
                     self::TELEFONO . ", " .
                     self::CORREO . ", " .
-                    self::USUARIO . ", " .
+                    //self::USUARIO . ", " .
                     self::CONTRASE_NA . ", " .
                     self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA;
@@ -585,7 +672,7 @@ class usuarios
                     self::APMATERNO . ", " .
                     self::TELEFONO . ", " .
                     self::CORREO . ", " .
-                    self::USUARIO . ", " .
+                    //self::USUARIO . ", " .
                     self::CONTRASE_NA . ", " .
                     self::ID_DEPARTAMENTO .
                     " FROM " . self::NOMBRE_TABLA .
@@ -605,6 +692,7 @@ class usuarios
                     "e.enlace_id,".
                     "u." . self::ID_USUARIO . "," .
                     "u." . self::NOMBRE . "," .
+                    "g.gps_id," .
                     "g.imei," .
                     "g.numero," .
                     "g.descripcion," .
@@ -621,9 +709,67 @@ class usuarios
                     return $sentencia;
                 else
                     return null;
+
                 break;
         }
     }
+
+    private function obtenerCoordenadasUsuario($tipo, $idUsuario, $fechaInicial = NULL, $fechaFinal = NULL)
+    {
+        switch ($tipo) {
+            case self::COORDENADAS_GPS_DE_USER_FECHA:
+                $consulta = "SELECT " .
+                "e.enlace_id,".
+                " u." . self::ID_USUARIO . "," .
+                " u.nombre,".
+                " d.detalle_id,".
+                " d.fecha,".
+                " c.coordenadas_id,".
+                " c.longitud,".
+                " c.latitud,".
+                " g.gps_id,".
+                " g.imei,".
+                " g.numero,".
+                " g.descripcion".
+                
+                " FROM " . self::NOMBRE_TABLA . " u" .
+                " INNER JOIN dbrs.enlace e ON ( u.usuario_id = e.usuario_id ) ".
+                " INNER JOIN dbrs.detalle d ON ( e.enlace_id = d.enlace_id )".
+                " INNER JOIN dbrs.coordenadas c ON ( d.detalle_id = c.detalle_id ) ".
+                " INNER JOIN dbrs.gps g ON ( e.gps_id = g.gps_id ) ".
+                
+                " WHERE u." . self::ID_USUARIO . "=?" . 
+                    " AND " . "d.fecha " . ">=?" .
+                    " AND " . "d.fecha " . "<=?" ;
+
+                // SELECT 
+                // e.enlace_id, 
+                // u.usuario_id, u.nombre,
+                // d.detalle_id, d.fecha,
+                // c.coordenadas_id, c.longitud, c.latitud, 
+                // g.gps_id,g.imei, g.numero, g.descripcion 
+                // FROM dbrs.usuarios u 
+                // INNER JOIN dbrs.enlace e ON ( u.usuario_id = e.usuario_id ) 
+                // INNER JOIN dbrs.detalle d ON ( e.enlace_id = d.enlace_id )
+                // INNER JOIN dbrs.coordenadas c ON ( d.detalle_id = c.detalle_id ) 
+                // INNER JOIN dbrs.gps g ON ( e.gps_id = g.gps_id ) 
+                // Where u.usuario_id = 1 AND d.fecha >= '2016-08-08 00:00:00'
+                // AND d.fecha <= '2016-08-08 00:00:00'
+
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $idUsuario);
+                $sentencia->bindParam(2, $fechaInicial);
+                $sentencia->bindParam(3, $fechaFinal);
+                
+                if ($sentencia->execute())
+                    return $sentencia;
+                else
+                    return null;
+            break;
+        }
+    }
+
+
 
 
     /**
@@ -693,23 +839,40 @@ class usuarios
      * @return null si este no fue encontrado
      */
 
-    /*
-    private function obtenerIdEmpresa($claveApi)
+    
+    private function obtenerDepartamentoUsuario($idUser)
     {
-        $comando = "SELECT " . self::ID_EMPRESA .
-            " FROM " . self::NOMBRE_TABLA .
-            " WHERE " . self::CLAVE_API . "=?";
+        $comando = "SELECT " . self::ID_DEPARTAMENTO .', '. selF::NOMBRE_DEPARTAMENTO.', '.self::EMPRESA_ID .
+         " FROM " . self::NOMBRE_TABLA_DEPARTAMENTO .
+            " WHERE " . self::ID_DEPARTAMENTO . "=?";
 
         $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
 
-        $sentencia->bindParam(1, $claveApi);
+        $sentencia->bindParam(1, $idUser);
 
         if ($sentencia->execute()) {
             $resultado = $sentencia->fetch();
-            return $resultado['empresa_id'];
+            return $resultado;
+            // return $sentencia->fetch(PDO::FETCH_ASSOC);;
         } else
             return null;
     }
-    */
-}
 
+    private function obtenerEmpresaUsuario($idEmpresa)
+    {
+        $comando = "SELECT " . self::EMPRESA_ID .", ".self::NOMBRE_EMPRESA .", ".self::STATUS_EMPRESA.
+            " FROM " . self::NOMBRE_TABLA_EMPRESA .
+            " WHERE " . self::EMPRESA_ID . "=?";
+
+        $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
+
+        $sentencia->bindParam(1, $idEmpresa);
+
+        if ($sentencia->execute()) {
+            $resultado = $sentencia->fetch();
+            return $resultado;
+        } else
+            return null;
+    }
+    
+}

@@ -50,8 +50,8 @@ class gps
             return self::listarLibres();
         } else if ($peticion[0] == 'listarGpsDeDepartamento') {
             return self::listarGpsDeDepartamento();
-        } else if ($peticion[0] == 'listarGpsDeEmpresaDisponibles') {
-            return self::listarGpsDeEmpresaDisponibles();
+        } else if ($peticion[0] == 'listarGpsDeDepartamentoDisponiblesAEnlace') {
+            return self::listarGpsDeDepartamentoDisponiblesAEnlace();
         } else if ($peticion[0] == 'listarGpsUsuarioEnlazados') {
             return self::listarGpsUsuarioEnlazados();
         } else if ($peticion[0] == 'sustituirGps') {
@@ -194,7 +194,8 @@ class gps
                 $respuesta["imei"] = $gpsBD["imei"];
                 $respuesta["numero"] = $gpsBD["numero"];
                 $respuesta["descripcion"] = $gpsBD["descripcion"];
-                $respuesta["empresa_id"] = $gpsBD["empresa_id"];
+                $respuesta["autorastreo"] = $gpsBD["autorastreo"];
+                $respuesta["departamento_id"] = $gpsBD["departamento_id"];
 
                 return ["estado" => 1, "gps" => $respuesta];
             } else {
@@ -255,7 +256,7 @@ class gps
                         "numero" => $row[2],
                         "descripcion" => $row[3],
                         "autorastreo" => $row[4],
-                        "departamento_id" => $row[4]
+                        "departamento_id" => $row[5]
                     ));
                 }
                 return ["estado" => 1, "gps" => $arreglo];
@@ -335,7 +336,7 @@ class gps
         }
     }
 
-    private function listarGpsDeEmpresaDisponibles()
+    private function listarGpsDeDepartamentoDisponiblesAEnlace()
     {
         /*
          * SELECT g.imei, g.numero, g.descripcion, e.enlace_id, e.usuario_id,count(g.imei) as cantidadEnlaces FROM dbrs.gps g left JOIN dbrs.enlace e ON ( g.imei = e.gps_imei  ) WHERE g.empresa_id = 1 GROUP BY g.imei having cantidadEnlaces < 6
@@ -344,24 +345,60 @@ class gps
         $gps = json_decode($cuerpo);
 
         if (!empty($gps)) {
-            $ID_EMPRESA_DE_GPS = $gps->empresa_id;
+            $ID_DEPARTAMENTO_DE_GPS = $gps->departamento_id;
 
-            $gpsBD = self::obtenerGps(self::TP_ENLACES_DISPONIBLES, $ID_EMPRESA_DE_GPS);
-            if ($gpsBD != NULL) {
+            $USUARIO_ID = $gps->usuario_id;
+            
+            $gpsBD_departamento = self::obtenerGps(self::TP_ENLACES_DISPONIBLES, $ID_DEPARTAMENTO_DE_GPS);
+
+            $gpsBD_enlaces = self::obtenerEnlaces($USUARIO_ID);
+
+
+            if ($gpsBD_departamento != NULL) {
                 http_response_code(200);
                 $arreglo = array();
-                while ($row = $gpsBD->fetch()) {
-                    array_push($arreglo, array(
+                $arregloDepartamento = array();
+                while ($row = $gpsBD_departamento->fetch()) {
+                    array_push($arregloDepartamento, array(
                         "gps_id" => $row[0],
                         "imei" => $row[1],
                         "numero" => $row[2],
                         "descripcion" => $row[3],
-                        "enlace_id" => $row[4],
-                        "usuario_id" => $row[5],
-                        "cantidadEnlaces" => $row[6]
+                        "autorastreo" => $row[4],
+                        "departamento_id" => $row[5],
+                        "enlace_id" => $row[6],
+                        "usuario_id" => $row[7],
+                        "cantidadEnlaces" => $row[8]
                     ));
+                }if ($gpsBD_departamento != NULL) {
+                    $arregloEnlace = array();
+                    $arregloAretornar = array();
+                    while ($row = $gpsBD_enlaces->fetch()) {
+                         array_push($arregloEnlace, array(
+                            "enlace_id" => $row[0],
+                            "usuario_id" => $row[1],
+                            "gps_id" => $row[2]
+                        ));
+                    }
+                    $arreglo = $arregloDepartamento;
+                    $repetido=0;
+                    $contadordepa=0;
+                    foreach ($arregloDepartamento as $dep) {
+                        $contadorenlace=0;
+                        foreach ($arregloEnlace as $enlace){
+                            if($enlace["gps_id"] == $dep["gps_id"]){
+                             unset($arregloDepartamento[$contadordepa]);
+                            }
+                            $contadorenlace++;
+                        }
+                        $contadordepa++;
+                    }
+                    $arregloDepartamento = array_values($arregloDepartamento );
+                    return ["estado" => 1, "gps"=>$arregloDepartamento];
+                }else{
+                    return ["estado" => 1, "gps" => $arregloDepartamento];
                 }
-                return ["estado" => 1, "gps" => $arreglo];
+
             } else {
                 throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                     "Ha ocurrido un error probablemente no se encontro el dato");
@@ -711,6 +748,7 @@ class gps
                     "g." . self::NUMERO . "," .
                     "g." . self::DESCRIPCION . "," .
                     "g." . self::AUTORASTREO . ", " .
+                    "g." . self::ID_DEPARTAMENTO . ", " .
                     "e.enlace_id," .
                     "e.usuario_id," .
                     "count(g.gps_id) as cantidadEnlaces" .
@@ -718,7 +756,7 @@ class gps
                     " LEFT JOIN enlace e ON (g.gps_id = e.gps_id)" .
                     " WHERE g." . self::ID_DEPARTAMENTO . "=?" .
                     " GROUP BY g.gps_id" .
-                    " HAVING cantidadEnlaces < 7 ";
+                    " HAVING cantidadEnlaces < 6 ";
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
 
                 $sentencia->bindParam(1, $dato);

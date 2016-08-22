@@ -124,41 +124,79 @@ class coordenadas
     private function crear($datosCoordenada)
     {
         //$coordenadas_id = $datosCoordenada->coordenadas_id;
-        $longitud = $datosCoordenada->longitud;
-        $latitud = $datosCoordenada->latitud;
-        $detalle_id = $datosCoordenada->detalle_id;
+        $ID_ENLACE = $datosCoordenada->enlace_id;
+        if($ID_ENLACE == NULL)
+            return self::ESTADO_CREACION_FALLIDA;
 
-        try {
+        $resultadoInsercionFecha = self::insertarDetalle($ID_ENLACE);
 
-            $pdo = ConexionBD::obtenerInstancia()->obtenerBD();
+        switch ($resultadoInsercionFecha) {
+            case self::ESTADO_CREACION_EXITOSA:
+                $longitud = $datosCoordenada->longitud;
+                $latitud = $datosCoordenada->latitud;
+                try {
+                    $pdo = ConexionBD::obtenerInstancia()->obtenerBD();
 
-            // Sentencia INSERT
-            $comando = "INSERT INTO " . self::NOMBRE_TABLA . " ( " .
-                self::ID_COORDENADAS . "," .
-                self::LONGITUD . "," .
-                self::LATITUD . "," .
-                self::ID_DETALLE . ")" .
-                " VALUES(?,?,?,?)";
+                    // Sentencia INSERT
+                    $comando = "INSERT INTO coordenadas ( " .
+                    "longitud, " .
+                    "latitud, " .
+                    "detalle_id )" .
+                    " VALUES(?,?,(SELECT MAX(detalle_id) FROM detalle))";
 
-            $sentencia = $pdo->prepare($comando);
+                    // INSERT INTO `coordenadas`( `longitud`, `latitud`, `detalle_id`)
+                    //  VALUES (12123.23,123213.21,(SELECT MAX(detalle_id) FROM detalle))
 
-            $sentencia->bindParam(1, $coordenadas_id );
-            $sentencia->bindParam(2, $longitud );
-            $sentencia->bindParam(3, $latitud );
-            $sentencia->bindParam(4, $detalle_id );
+                    $sentencia = $pdo->prepare($comando);
 
-            $resultado = $sentencia->execute();
+                    $sentencia->bindParam(1, $longitud );
+                    $sentencia->bindParam(2, $latitud );
 
-            if ($resultado) {
-                return self::ESTADO_CREACION_EXITOSA;
-            } else {
-                return self::ESTADO_CREACION_FALLIDA;
-            }
-        } catch (PDOException $e) {
-            throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+                    $resultado = $sentencia->execute();
+
+                    if ($resultado) {
+                        return self::ESTADO_CREACION_EXITOSA;
+                    } else {
+                        return self::ESTADO_CREACION_FALLIDA;
+                    }
+                } catch (PDOException $e) {
+                    throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+                }
+                break;
+            case self::ESTADO_CREACION_FALLIDA:
+                throw new ExcepcionApi(self::ESTADO_CREACION_FALLIDA, "Ha ocurrido un error");
+                break;
+            default:
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "Falla desconocida", 400);
         }
-
     }
+
+        private function insertarDetalle($id_enlace){
+            date_default_timezone_set('America/Mexico_City');
+            //$FECHA = "'".date('d-m-Y h:i:s', time())."'";
+            $FECHA = date('Y-m-d h:i:s', time());
+            try {
+                $pdo = ConexionBD::obtenerInstancia()->obtenerBD();
+
+                // Sentencia INSERT
+                $comando = "INSERT INTO  detalle ( " .
+                "fecha, ". 
+                "enlace_id)" .
+                " VALUES(?,?)";             
+                $sentencia = $pdo->prepare($comando);               
+                $sentencia->bindParam(1, $FECHA );
+                $sentencia->bindParam(2, $id_enlace );
+                $resultado = $sentencia->execute();             
+                
+                if ($resultado) {
+                return self::ESTADO_CREACION_EXITOSA;
+                } else {
+                return self::ESTADO_CREACION_FALLIDA;
+                }
+            } catch (PDOException $e) {
+                throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+            }
+        }
 
 
     private function listarUnoId()
