@@ -408,8 +408,8 @@ private function listarCoordenadasDeTodosSusGpsPorFecha()
             $sentencia->bindParam(4, $telefono);
             $sentencia->bindParam(5, $correo);
             //$sentencia->bindParam(6, $usuariouser);
-            $sentencia->bindParam(7, $contrase_na);
-            $sentencia->bindParam(8, $idUsuario);
+            $sentencia->bindParam(6, $contrase_na);
+            $sentencia->bindParam(7, $idUsuario);
 
             $contrase_na = $usuario->contrase_na;
             //$contrasenaEncriptada = self::encriptarContrasena($contrase_na);
