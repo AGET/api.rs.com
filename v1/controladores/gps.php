@@ -613,15 +613,39 @@ class gps
     function actualizar($gps, $gps_id)
     {
         try {
-            if (empty($gps->numero) && empty($gps->descripcion) && empty($gps->departamento_id)) {
-//Actualiza solo el IMEI
-                $IMEI = $gps->imei;
+
+            if (empty($gps->imei) && empty($gps->numero) && empty($gps->descripcion)) {
+                if(!empty($gps->imei)){
+//Actualiza solo el id del departamento
+                $departamento_id = $gps->departamento_id;
                 $consulta = "UPDATE " . self::NOMBRE_TABLA .
-                    " SET " . self::IMEI . "=?" .
+                    " SET " . self::ID_DEPARTAMENTO . "=?" .
                     " WHERE " . self::GPS_ID . "=?";
 
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-                $sentencia->bindParam(1, $IMEI);
+                $sentencia->bindParam(1, $departamento_id);
+                $sentencia->bindParam(2, $gps_id);
+                }else{
+//Actualiza solo el id del departamento a NULL
+                    $departamento_id = NULL;
+                    $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                        " SET " . self::ID_DEPARTAMENTO . "=?" .
+                        " WHERE " . self::GPS_ID . "=?";
+
+                    $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                    $sentencia->bindParam(1, $departamento_id);
+                    $sentencia->bindParam(2, $gps_id);
+                }
+
+            } else if (empty($gps->imei) && empty($gps->numero) && empty($gps->departamento_id)) {
+//Actualiza solo la descripcion
+                $descripcion = $gps->descripcion;
+                $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                    " SET " . self::DESCRIPCION . "=?" .
+                    " WHERE " . self::GPS_ID . "=?";
+
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $descripcion);
                 $sentencia->bindParam(2, $gps_id);
 
             } else if (empty($gps->imei) && empty($gps->descripcion) && empty($gps->departamento_id)) {
@@ -635,29 +659,18 @@ class gps
                 $sentencia->bindParam(1, $numero);
                 $sentencia->bindParam(2, $gps_id);
 
-            } else if (empty($gps->imei) && empty($gps->numero) && empty($gps->departamento_id)) {
-//Actualiza solo la descripcion
-                $descripcion = $gps->descripcion;
+            }else if (empty($gps->numero) && empty($gps->descripcion) && empty($gps->departamento_id)) {
+//Actualiza solo el IMEI
+                $IMEI = $gps->imei;
                 $consulta = "UPDATE " . self::NOMBRE_TABLA .
-                    " SET " . self::DESCRIPCION . "=?" .
+                    " SET " . self::IMEI . "=?" .
                     " WHERE " . self::GPS_ID . "=?";
 
                 $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-                $sentencia->bindParam(1, $descripcion);
+                $sentencia->bindParam(1, $IMEI);
                 $sentencia->bindParam(2, $gps_id);
 
-            } else if (empty($gps->imei) && empty($gps->numero) && empty($gps->descripcion)) {
-//Actualiza solo el id del departamento
-                $departamento_id = $gps->departamento_id;
-                $consulta = "UPDATE " . self::NOMBRE_TABLA .
-                    " SET " . self::ID_DEPARTAMENTO . "=?" .
-                    " WHERE " . self::GPS_ID . "=?";
-
-                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
-                $sentencia->bindParam(1, $departamento_id);
-                $sentencia->bindParam(2, $gps_id);
-
-            } else {
+            }  else {
                 //Actualiza todo
                 $consulta = "UPDATE " . self::NOMBRE_TABLA .
                     " SET " . self::IMEI . "=?," .
