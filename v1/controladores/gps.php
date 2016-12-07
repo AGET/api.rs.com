@@ -56,9 +56,9 @@ class gps
             return self::listarGpsUsuarioEnlazados();
         } else if ($peticion[0] == 'sustituirGps') {
             return self::sustituirGps();
-        } else if($peticion[0] == 'listarGpsDeDepartamentoAEnlazarUsuario'){
+        } else if ($peticion[0] == 'listarGpsDeDepartamentoAEnlazarUsuario') {
             return self::listarGpsDeDepartamentoAEnlazarUsuario();
-        }else {
+        } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
 
@@ -93,7 +93,6 @@ class gps
 
     public static function put($peticion)
     {
-
         //$peticion[0] : es lo indicado e la direccion :http://localhost/api.rs.com/v1/usuarios/2 = 2
         if (!empty($peticion[0])) {
             $body = file_get_contents('php://input');
@@ -143,7 +142,7 @@ class gps
         $imei = $datosGPS->imei;
         $numero = $datosGPS->numero;
         $descripcion = $datosGPS->descripcion;
-        $empresa_id = $datosGPS->empresa_id;
+        $departamento_id = $datosGPS->departamento_id;
 
         try {
 
@@ -154,7 +153,7 @@ class gps
                 self::IMEI . "," .
                 self::NUMERO . "," .
                 self::DESCRIPCION . "," .
-                self::ID_EMPRESA . ")" .
+                self::ID_DEPARTAMENTO . ")" .
                 " VALUES(?,?,?,?)";
 
             $sentencia = $pdo->prepare($comando);
@@ -162,7 +161,7 @@ class gps
             $sentencia->bindParam(1, $imei);
             $sentencia->bindParam(2, $numero);
             $sentencia->bindParam(3, $descripcion);
-            $sentencia->bindParam(4, $empresa_id);
+            $sentencia->bindParam(4, $departamento_id);
 
             $resultado = $sentencia->execute();
 
@@ -220,9 +219,9 @@ class gps
                 array_push($arreglo, array(
                     "gps_id" => $row[0],
                     "imei" => $row[1],
-                    "numerp" => $row[2],
+                    "numero" => $row[2],
                     "descripcion" => $row[3],
-                    "empresa_id" => $row[4]
+                    "departamento_id" => $row[4]
                 ));
             }
 //            foreach ($arreglo as $keys) {
@@ -266,7 +265,7 @@ class gps
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
-                "Se desconoce la empresa del gps");
+                "Se desconoce el departamento del gps");
         }
     }
 
@@ -301,28 +300,28 @@ class gps
                     $arregloEnlace = array();
                     $arregloAretornar = array();
                     while ($row = $gpsBD_enlaces->fetch()) {
-                         array_push($arregloEnlace, array(
+                        array_push($arregloEnlace, array(
                             "enlace_id" => $row[0],
                             "usuario_id" => $row[1],
                             "gps_id" => $row[2]
                         ));
                     }
                     $arreglo = $arregloDepartamento;
-                    $repetido=0;
-                    $contadordepa=0;
+                    $repetido = 0;
+                    $contadordepa = 0;
                     foreach ($arregloDepartamento as $dep) {
-                        $contadorenlace=0;
-                        foreach ($arregloEnlace as $enlace){
-                            if($enlace["gps_id"] == $dep["gps_id"]){
-                             unset($arregloDepartamento[$contadordepa]);
+                        $contadorenlace = 0;
+                        foreach ($arregloEnlace as $enlace) {
+                            if ($enlace["gps_id"] == $dep["gps_id"]) {
+                                unset($arregloDepartamento[$contadordepa]);
                             }
                             $contadorenlace++;
                         }
                         $contadordepa++;
                     }
-                    $arregloDepartamento = array_values($arregloDepartamento );
-                    return ["estado" => 1, "gps"=>$arregloDepartamento];
-                }else{
+                    $arregloDepartamento = array_values($arregloDepartamento);
+                    return ["estado" => 1, "gps" => $arregloDepartamento];
+                } else {
                     return ["estado" => 1, "gps" => $arregloDepartamento];
                 }
 
@@ -332,7 +331,7 @@ class gps
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
-                "Se desconoce la empresa del gps");
+                "Se desconoce el departmaneto del gps");
         }
     }
 
@@ -348,7 +347,7 @@ class gps
             $ID_DEPARTAMENTO_DE_GPS = $gps->departamento_id;
 
             $USUARIO_ID = $gps->usuario_id;
-            
+
             $gpsBD_departamento = self::obtenerGps(self::TP_ENLACES_DISPONIBLES, $ID_DEPARTAMENTO_DE_GPS);
 
             $gpsBD_enlaces = self::obtenerEnlaces($USUARIO_ID);
@@ -370,32 +369,33 @@ class gps
                         "usuario_id" => $row[7],
                         "cantidadEnlaces" => $row[8]
                     ));
-                }if ($gpsBD_departamento != NULL) {
+                }
+                if ($gpsBD_departamento != NULL) {
                     $arregloEnlace = array();
                     $arregloAretornar = array();
                     while ($row = $gpsBD_enlaces->fetch()) {
-                         array_push($arregloEnlace, array(
+                        array_push($arregloEnlace, array(
                             "enlace_id" => $row[0],
                             "usuario_id" => $row[1],
                             "gps_id" => $row[2]
                         ));
                     }
                     $arreglo = $arregloDepartamento;
-                    $repetido=0;
-                    $contadordepa=0;
+                    $repetido = 0;
+                    $contadordepa = 0;
                     foreach ($arregloDepartamento as $dep) {
-                        $contadorenlace=0;
-                        foreach ($arregloEnlace as $enlace){
-                            if($enlace["gps_id"] == $dep["gps_id"]){
-                             unset($arregloDepartamento[$contadordepa]);
+                        $contadorenlace = 0;
+                        foreach ($arregloEnlace as $enlace) {
+                            if ($enlace["gps_id"] == $dep["gps_id"]) {
+                                unset($arregloDepartamento[$contadordepa]);
                             }
                             $contadorenlace++;
                         }
                         $contadordepa++;
                     }
-                    $arregloDepartamento = array_values($arregloDepartamento );
-                    return ["estado" => 1, "gps"=>$arregloDepartamento];
-                }else{
+                    $arregloDepartamento = array_values($arregloDepartamento);
+                    return ["estado" => 1, "gps" => $arregloDepartamento];
+                } else {
                     return ["estado" => 1, "gps" => $arregloDepartamento];
                 }
 
@@ -405,7 +405,7 @@ class gps
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
-                "Se desconoce la empresa del gps");
+                "Se desconoce el departamento del gps");
         }
     }
 
@@ -448,7 +448,7 @@ class gps
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
-                "Se desconoce la empresa del gps");
+                "Se desconoce el departamento del gps");
         }
     }
 
@@ -522,7 +522,7 @@ class gps
                 echo "sin enlaces";
             }
             //paso 6
-            if (self::eliminarDeLaEmpresa($gps_id_anterior) > 0) {
+            if (self::eliminarDelDepartamento($gps_id_anterior) > 0) {
                 http_response_code(200);
                 return [
                     "estado" => self::CODIGO_EXITO,
@@ -543,7 +543,7 @@ class gps
             "g." . self::IMEI . ", " .
             "g." . self::NUMERO . ", " .
             "g." . self::DESCRIPCION . ", " .
-            "g." . self::ID_EMPRESA .
+            "g." . self::ID_DEPARTAMENTO .
             " FROM " . self::NOMBRE_TABLA . " g" .
             " INNER JOIN enlace e ON ( g.gps_id = e.gps_id  )" .
             " WHERE g." . self::GPS_ID . "=?";
@@ -587,11 +587,11 @@ class gps
         return $sentencia->rowCount();
     }
 
-    private function eliminarDeLaEmpresa($gps_id_anterior)
+    private function eliminarDelDepartamento($gps_id_anterior)
     {
         try {
             $consulta = "UPDATE " . self::NOMBRE_TABLA .
-                " SET " . self::ID_EMPRESA . "=NULL" .
+                " SET " . self::ID_DEPARTAMENTO . "=NULL" .
                 " WHERE " . self::GPS_ID . "=?";
 
             // Preparar la sentencia
@@ -613,32 +613,71 @@ class gps
     function actualizar($gps, $gps_id)
     {
         try {
-            $consulta = "UPDATE " . self::NOMBRE_TABLA .
-                " SET " . self::IMEI . "=?," .
-                self::NUMERO . "=?," .
-                self::DESCRIPCION . "=?," .
-                self::ID_EMPRESA . "=?" .
-                " WHERE " . self::GPS_ID . "=?";
+            if (empty($gps->numero) && empty($gps->descripcion) && empty($gps->departamento_id)) {
+//Actualiza solo el IMEI
+                $IMEI = $gps->imei;
+                $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                    " SET " . self::IMEI . "=?" .
+                    " WHERE " . self::GPS_ID . "=?";
 
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $IMEI);
+                $sentencia->bindParam(2, $gps_id);
 
-            // Preparar la sentencia
-            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+            } else if (empty($gps->imei) && empty($gps->descripcion) && empty($gps->departamento_id)) {
+//Actualiza solo el numero
+                $numero = $gps->numero;
+                $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                    " SET " . self::NUMERO . "=?" .
+                    " WHERE " . self::GPS_ID . "=?";
 
-            $sentencia->bindParam(1, $IMEI);
-            $sentencia->bindParam(2, $numero);
-            $sentencia->bindParam(3, $descripcion);
-            $sentencia->bindParam(4, $empresa_id);
-            $sentencia->bindParam(5, $gps_id);
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $numero);
+                $sentencia->bindParam(2, $gps_id);
 
+            } else if (empty($gps->imei) && empty($gps->numero) && empty($gps->departamento_id)) {
+//Actualiza solo la descripcion
+                $descripcion = $gps->descripcion;
+                $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                    " SET " . self::DESCRIPCION . "=?" .
+                    " WHERE " . self::GPS_ID . "=?";
 
-            $IMEI = $gps->imei;
-            $numero = $gps->numero;
-            $descripcion = $gps->descripcion;
-            $empresa_id = $gps->empresa_id;
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $descripcion);
+                $sentencia->bindParam(2, $gps_id);
+
+            } else if (empty($gps->imei) && empty($gps->numero) && empty($gps->descripcion)) {
+//Actualiza solo el id del departamento
+                $departamento_id = $gps->departamento_id;
+                $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                    " SET " . self::ID_DEPARTAMENTO . "=?" .
+                    " WHERE " . self::GPS_ID . "=?";
+
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+                $sentencia->bindParam(1, $departamento_id);
+                $sentencia->bindParam(2, $gps_id);
+
+            } else {
+                //Actualiza todo
+                $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                    " SET " . self::IMEI . "=?," .
+                    self::NUMERO . "=?," .
+                    self::DESCRIPCION . "=?," .
+                    self::ID_DEPARTAMENTO . "=?" .
+                    " WHERE " . self::GPS_ID . "=?";
+
+                // Preparar la sentencia
+                $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+
+                $sentencia->bindParam(1, $IMEI);
+                $sentencia->bindParam(2, $numero);
+                $sentencia->bindParam(3, $descripcion);
+                $sentencia->bindParam(4, $departamento_id);
+                $sentencia->bindParam(5, $gps_id);
+            }
 
             // Ejecutar la sentencia
             $sentencia->execute();
-
             return $sentencia->rowCount();
 
         } catch (PDOException $e) {
@@ -798,8 +837,8 @@ class gps
         }
     }
 
-     private function obtenerEnlaces($idUsuario)
-    {   
+    private function obtenerEnlaces($idUsuario)
+    {
         $consulta =
             "SELECT " .
             "enlace_id, " .
