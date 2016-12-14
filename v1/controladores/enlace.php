@@ -274,7 +274,7 @@ class enlace
     {
         try {
             // Sentencia SQL
-            $comando = "SELECT e." . self::ENLACE_ID . ", e." . self::USUARIO_ID . ", e." . self::GPS_ID . "u.nombre,u.ap_paterno,u.ap_materno" .
+            $comando = "SELECT e." . self::ENLACE_ID . ", e." . self::USUARIO_ID . ", e." . self::GPS_ID . ", u.nombre,u.ap_paterno,u.ap_materno" .
                 " FROM " . self::NOMBRE_TABLA . " e" .
                 " INNER JOIN usuarios u ON ( e." . self::USUARIO_ID . " = u." . self::USUARIO_ID . " ) " .
                 " WHERE e." . self::GPS_ID . " = ?";
