@@ -37,8 +37,8 @@ class enlace
         if ($peticion[0] == 'listarTelefonos') {
             return self::listarTelefonos();
         }
-        if ($peticion[0] == 'listarEnlaces') {
-            return self::listarEnlaces();
+        if ($peticion[0] == 'listarEnlacesBaseGps') {
+            return self::listarEnlacesBaseGps();
         } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
@@ -228,7 +228,7 @@ class enlace
     }
 
 
-    private function listarEnlaces()
+    private function listarEnlacesBaseGps()
     {
         $cuerpo = file_get_contents('php://input');
         $enlace = json_decode($cuerpo);
@@ -236,7 +236,7 @@ class enlace
             if (isset($enlace->gps_id)) {
                 $ID_GPS = $enlace->gps_id;
 
-                $enlaceBD = self::listar($ID_GPS);
+                $enlaceBD = self::listarEnlacesConBaseGps($ID_GPS);
 
                 if ($enlaceBD != NULL) {
                     http_response_code(200);
@@ -270,11 +270,11 @@ class enlace
      * @return int codigo para determinar si la insercion fue exitosa
      */
 
-    private function listar($gps_id)
+    private function listarEnlacesConBaseGps($gps_id)
     {
         try {
             // Sentencia SQL
-            $comando = "SELECT e." . self::ENLACE_ID . ", e." . self::USUARIO_ID . ", e." . self::GPS_ID . ", u.nombre,u.ap_paterno,u.ap_materno" .
+            $comando = "SELECT e." . self::ENLACE_ID . ", e." . self::USUARIO_ID . ", e." . self::GPS_ID . ",u.nombre,u.ap_paterno,u.ap_materno" .
                 " FROM " . self::NOMBRE_TABLA . " e" .
                 " INNER JOIN usuarios u ON ( e." . self::USUARIO_ID . " = u." . self::USUARIO_ID . " ) " .
                 " WHERE e." . self::GPS_ID . " = ?";
