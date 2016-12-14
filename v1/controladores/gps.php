@@ -48,6 +48,10 @@ class gps
             return self::listarVarios();
         } else if ($peticion[0] == 'listarLibres') {
             return self::listarLibres();
+        } else if ($peticion[0] == 'establecerAutorastreo') {
+            return self::establecerAutorastreo();
+        } else if ($peticion[0] == 'asignarDepartamento') {
+            return self::asignarDepartamento();
         } else if ($peticion[0] == 'listarGpsDeDepartamento') {
             return self::listarGpsDeDepartamento();
         } else if ($peticion[0] == 'listarGpsDeDepartamentoDisponiblesAEnlace') {
@@ -233,6 +237,48 @@ class gps
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                 "Ha ocurrido un error probablemente no se encontro el dato");
+        }
+    }
+
+
+    public static function establecerAutorastreo($peticion) {
+
+        //$peticion[0] : es lo indicado e la direccion :http://localhost/api.rs.com/v1/usuarios/2 = 2
+        $body = file_get_contents('php://input');
+        $gps = json_decode($body);
+        if ($gps != NULL) {
+            if (self::cambiarAutorastreo($gps) > 0) {
+                http_response_code(200);
+                return [
+                    "estado" => self::CODIGO_EXITO,
+                    "mensaje" => "Autorrastreo establecido correctamente"
+                ];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "No asignado");
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "Ha ocurrido un error probablemente no se encontro el dato");
+        }
+    }
+
+
+    public static function asignarDepartamento($peticion) {
+
+        //$peticion[0] : es lo indicado e la direccion :http://localhost/api.rs.com/v1/usuarios/2 = 2
+        $body = file_get_contents('php://input');
+        $gps = json_decode($body);
+        if ($gps != NULL) {
+            if (self::cambiarDepartamento($gps) > 0) {
+                http_response_code(200);
+                return [
+                    "estado" => self::CODIGO_EXITO,
+                    "mensaje" => "Asignado correctamente"
+                ];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "No asignado");
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "Ha ocurrido un error probablemente no se encontro el dato");
         }
     }
 
@@ -472,6 +518,56 @@ class gps
         } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA,
                 "Ha ocurrido un error probablemente no se encontro el dato");
+        }
+    }
+
+      function cambiarAutorastreo($gps) {
+        try {
+            $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                    " SET " . self::AUTORASTREO . "=?" .
+                    " WHERE " . self::GPS_ID . "=?";
+
+
+            // Preparar la sentencia
+            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+
+            $sentencia->bindParam(1, $autorastreo);
+            $sentencia->bindParam(2, $gps_id);
+
+            $gps_id = $gps->gps_id;
+            $autorastreo = $gps->autorastreo;
+
+            // Ejecutar la sentencia.
+            $sentencia->execute();
+
+            return $sentencia->rowCount();
+        } catch (PDOException $e) {
+            throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+        }
+    }
+
+    function cambiarDepartamento($gps) {
+        try {
+            $consulta = "UPDATE " . self::NOMBRE_TABLA .
+                    " SET " . self::ID_DEPARTAMENTO . "=?" .
+                    " WHERE " . self::GPS_ID . "=?";
+
+
+            // Preparar la sentencia
+            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
+
+            $sentencia->bindParam(1, $departamento_id);
+            $sentencia->bindParam(2, $gps_id);
+
+            $gps_id = $gps->gps_id;
+            $departamento_id = $gps->departamento_id;
+
+            // Ejecutar la sentencia.
+            $sentencia->execute();
+
+            return $sentencia->rowCount();
+        } catch (PDOException $e) {
+            throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
         }
     }
 

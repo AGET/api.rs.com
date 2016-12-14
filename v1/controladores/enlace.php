@@ -33,9 +33,13 @@ class enlace
     {
         if ($peticion[0] == 'registro') {
             return self::registrar();
-        }if ($peticion[0] == 'listarTelefonos') {
-        return self::listarTelefonos();
-    } else {
+        }
+        if ($peticion[0] == 'listarTelefonos') {
+            return self::listarTelefonos();
+        }
+        if ($peticion[0] == 'listarEnlaces') {
+            return self::listarEnlaces();
+        } else {
             throw new ExcepcionApi(self::ESTADO_URL_INCORRECTA, "Url mal formada", 400);
         }
     }
@@ -97,9 +101,9 @@ class enlace
     {
         $usuario_id = $datosEnlace->usuario_id;
         $gps_id = $datosEnlace->gps_id;
-        $cantidad = self::repetido($gps_id,$usuario_id);
+        $cantidad = self::repetido($gps_id, $usuario_id);
 
-        if($cantidad["cantidad"] < 1) {
+        if ($cantidad["cantidad"] < 1) {
             try {
                 $pdo = ConexionBD::obtenerInstancia()->obtenerBD();
 
@@ -124,17 +128,18 @@ class enlace
             } catch (PDOException $e) {
                 throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
             }
-        }else{
+        } else {
             throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "Ya existe el registro", 422);
         }
 
     }
 
-    public function repetido($codigoId, $codigoUsuario){
+    public function repetido($codigoId, $codigoUsuario)
+    {
         $consulta = "SELECT " .
-            "COUNT(enlace_id) as cantidad".
+            "COUNT(enlace_id) as cantidad" .
             " FROM " . self::NOMBRE_TABLA .
-            " WHERE " . self::GPS_ID . "=?".
+            " WHERE " . self::GPS_ID . "=?" .
             " AND usuario_id =?";
         $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($consulta);
         $sentencia->bindParam(1, $codigoId);
@@ -168,7 +173,6 @@ class enlace
     }
 
 
-
     private function listarTelefonos()
     {
         $cuerpo = file_get_contents('php://input');
@@ -199,14 +203,13 @@ class enlace
     }
 
 
-
     private function obtenerTelefonosEnlazados($tipoPeticion, $dato)
     {
         switch ($tipoPeticion) {
             case self::TP_OBTENER_TELEFONOS_ENLAZADOS:
                 $consulta =
                     "SELECT " .
-                    "u.telefono,".
+                    "u.telefono," .
                     "g.numero" .
                     " FROM " . self::NOMBRE_TABLA . " e" .
                     " INNER JOIN gps g ON (e.gps_id = g.gps_id)" .
@@ -223,4 +226,66 @@ class enlace
                 break;
         }
     }
+
+
+    private function listarEnlaces()
+    {
+        $cuerpo = file_get_contents('php://input');
+        $enlace = json_decode($cuerpo);
+        if (!empty($enlace)) {
+            $ID_GPS = $enlace->gps_id;
+
+            $enlaceBD = self::listar($ID_GPS);
+
+            if ($enlaceBD != NULL) {
+                http_response_code(200);
+                $arreglo = array();
+                while ($row = $enlaceBD->fetch()) {
+                    array_push($arreglo, array(
+                        self::ENLACE_ID => $row[0],
+                        self::USUARIO_ID => $row[1],
+                        self::GPS_ID => $row[2],
+                        "nombre" => $row[3]
+                    ));
+                }
+                return ["estado" => 1, "enlace" => $arreglo];
+            } else {
+                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "Ha ocurrido un error probablemente no se encontro el dato");
+            }
+        } else {
+            throw new ExcepcionApi(self::ESTADO_ERROR_PARAMETROS, "Faltan parametros", 422);
+        }
+    }
+
+
+    /**
+     * Crea un nuevo enlace en la tabla "enlace"
+     * @param mixed $datosEnlace columnas de la busqueda
+     * @return int codigo para determinar si la insercion fue exitosa
+     */
+
+    private function listar($datosEnlace)
+    {
+        $usuario_id = $datosEnlace->usuario_id;
+        $gps_id = $datosEnlace->gps_id;
+
+        try {
+            // Sentencia SQL
+            $comando = "SELECT e." . self::ENLACE_ID . ", e." . self::USUARIO_ID . ", e." . self::GPS_ID . ", u.nombre" .
+                " FROM " . self::NOMBRE_TABLA . " e" .
+                " INNER JOIN usuarios u ON ( e." . self::USUARIO_ID . " = u." . self::USUARIO_ID . " ) " .
+                " WHERE e." . self::GPS_ID . " = ?";
+
+            $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
+            $sentencia->bindParam(1, $dato);
+
+            if ($sentencia->execute())
+                return $sentencia;
+            else
+                return null;
+        } catch (PDOException $e) {
+            throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
+        }
+    }
+
 }
