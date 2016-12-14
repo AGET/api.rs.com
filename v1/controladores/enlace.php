@@ -233,24 +233,30 @@ class enlace
         $cuerpo = file_get_contents('php://input');
         $enlace = json_decode($cuerpo);
         if (!empty($enlace)) {
-            $ID_GPS = $enlace->gps_id;
+            if (isset($enlace->gps_id)) {
+                $ID_GPS = $enlace->gps_id;
 
-            $enlaceBD = self::listar($ID_GPS);
+                $enlaceBD = self::listar($ID_GPS);
 
-            if ($enlaceBD != NULL) {
-                http_response_code(200);
-                $arreglo = array();
-                while ($row = $enlaceBD->fetch()) {
-                    array_push($arreglo, array(
-                        self::ENLACE_ID => $row[0],
-                        self::USUARIO_ID => $row[1],
-                        self::GPS_ID => $row[2],
-                        "nombre" => $row[3]
-                    ));
+                if ($enlaceBD != NULL) {
+                    http_response_code(200);
+                    $arreglo = array();
+                    while ($row = $enlaceBD->fetch()) {
+                        array_push($arreglo, array(
+                            self::ENLACE_ID => $row[0],
+                            self::USUARIO_ID => $row[1],
+                            self::GPS_ID => $row[2],
+                            "nombre" => $row[3],
+                            "ap_paterno" => $row[4],
+                            "ap_materno" => $row[5]
+                        ));
+                    }
+                    return ["estado" => 1, "enlace" => $arreglo];
+                } else {
+                    throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "Ha ocurrido un error probablemente no se encontro el dato");
                 }
-                return ["estado" => 1, "enlace" => $arreglo];
             } else {
-                throw new ExcepcionApi(self::ESTADO_FALLA_DESCONOCIDA, "Ha ocurrido un error probablemente no se encontro el dato");
+                throw new ExcepcionApi(self::ESTADO_ERROR_PARAMETROS, "falta gps_id", 422);
             }
         } else {
             throw new ExcepcionApi(self::ESTADO_ERROR_PARAMETROS, "Faltan parametros", 422);
@@ -264,20 +270,17 @@ class enlace
      * @return int codigo para determinar si la insercion fue exitosa
      */
 
-    private function listar($datosEnlace)
+    private function listar($gps_id)
     {
-        $usuario_id = $datosEnlace->usuario_id;
-        $gps_id = $datosEnlace->gps_id;
-
         try {
             // Sentencia SQL
-            $comando = "SELECT e." . self::ENLACE_ID . ", e." . self::USUARIO_ID . ", e." . self::GPS_ID . ", u.nombre" .
+            $comando = "SELECT e." . self::ENLACE_ID . ", e." . self::USUARIO_ID . ", e." . self::GPS_ID . "u.nombre,u.ap_paterno,u.ap_materno" .
                 " FROM " . self::NOMBRE_TABLA . " e" .
                 " INNER JOIN usuarios u ON ( e." . self::USUARIO_ID . " = u." . self::USUARIO_ID . " ) " .
                 " WHERE e." . self::GPS_ID . " = ?";
 
             $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
-            $sentencia->bindParam(1, $dato);
+            $sentencia->bindParam(1, $gps_id);
 
             if ($sentencia->execute())
                 return $sentencia;
@@ -287,5 +290,4 @@ class enlace
             throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
         }
     }
-
 }
